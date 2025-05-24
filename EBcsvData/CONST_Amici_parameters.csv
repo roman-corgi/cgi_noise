@@ -1,0 +1,3 @@
+Amici_assumed_BW,center_wavelen_nm ,compressd_beam_diamtr_m,final_focal_length_m,PSF_core_x_extent_lamD,PSF_core_y_extent_lamD,lam_squared,lam,constant
+0.15,730,0.005,0.26,0.942,0.45,0.0008549637206953,-1.5131362317830300,707.8977209483250000
+# COMMENTS: Last three values G2:I2 refer to a table on spreadsheet O10:Q10 and are not used--they can be deleted…last updated 5/7/20,,,,,,,,
