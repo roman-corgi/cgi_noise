@@ -1,0 +1,8 @@
+Item ,REQ,CBE
+Star Phot,0.029,0.019
+CTI,0.026,0.02
+core thruput,0.022,0.0108
+flat field,0.013,0.0116
+Image Correction,0.01,0.0071
+noise bias,0.015,0.0028
+# 241227 BN update of core throughput calibration error recorded in TVACresults_241227.xlsx,,
