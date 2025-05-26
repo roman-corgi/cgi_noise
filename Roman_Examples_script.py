@@ -524,15 +524,15 @@ CRhitsPerFrame,detPixAcross,detPixSize,CRrate,CRtailLen\
 
 CTE_clocking_efficiency, CTE_traps, signalPerPixPerFrame = fl.getCTE(DET_CBE_Data, rate_photoConverted,frameTime,missionFraction)
 
-hotPixFrac, hotPix = fl.gethotPixels(DET_CBE_Data, missionFraction)
+hotPixFrac = DET_CBE_Data.df.at[0,'HotPixFrac']
+hotPix = hotPixFrac*missionFraction
 
-ENF = fl.getENF(isPhotonCounting)
+if isPhotonCounting:
+    ENF = 1
+else:
+    ENF = math.sqrt(2)
 
 detCamRead = DET_CBE_Data.df.at[0,'ReadNoise_e']
-
-# readNoise, readNoise_leakage, readNoise_leakage_in_current_units,\
-#      PCeffloss, readNoise_w_gain\
-#    = fl.getReadNoiseandPCeffloss(detCamRead, detPCthreshold, isPhotonCounting, frameTime, detEMgain)
 
 """Read noise"""
 readNoise_w_gain = detCamRead/detEMgain # read noise with gain if analog
@@ -597,12 +597,12 @@ totNoiseVarRate = ENF**2 * (rate_planet_imgArea +\
                           k_sp * speckleRate_proc +\
                           k_lzo * rate_loZodi_incPht * dQE +\
                           k_ezo * rate_exoZodi_incPht * dQE ) +\
-                    k_det * (darkNoiseRate + CIC_RNLK_noiseRate) +\
-                    k_det * readNoiseRate
+                            k_det * (darkNoiseRate + CIC_RNLK_noiseRate) +\
+                            k_det * readNoiseRate
 
 # ## Calculations for Specified Planet
-# Substitute for usableTinteg:
-usableTmini = 0.71 * 60 * 60
+# # Substitute for usableTinteg:
+# usableTmini = 0.71 * 60 * 60
 
 
 # In[ ]:

@@ -540,19 +540,19 @@ def getCTE(DET_CBE_Data, rate_photoConverted,frameTime,missionFraction):
     
     return CTE_clocking_efficiency, CTE_traps, signalPerPixPerFrame
 
-def gethotPixels(DET_CBE_Data, missionFraction):
+# def gethotPixels(DET_CBE_Data, missionFraction):
     
-    hotPixFrac = DET_CBE_Data.df.at[0,'HotPixFrac']
-    hotPix = hotPixFrac*missionFraction
+#     hotPixFrac = DET_CBE_Data.df.at[0,'HotPixFrac']
+#     hotPix = hotPixFrac*missionFraction
     
-    return hotPixFrac, hotPix
+#     return hotPixFrac, hotPix
 
-def getENF(isPhotonCounting):
-    if isPhotonCounting:
-        ENF = 1
-    else:
-        ENF = math.sqrt(2) # 1.414
-    return ENF
+# def getENF(isPhotonCounting):
+#     if isPhotonCounting:
+#         ENF = 1
+#     else:
+#         ENF = math.sqrt(2) # 1.414
+#     return ENF
 
 # def getReadNoiseandPCeffloss(detCamRead, detPCthreshold, isPhotonCounting, frameTime, detEMgain):
 #     """Read noise"""
@@ -575,25 +575,25 @@ def getENF(isPhotonCounting):
 #     return readNoise, readNoise_leakage, readNoise_leakage_in_current_units,\
 #          PCeffloss, readNoise_w_gain
 
-def getdetdQE(det_CTE, PCeffloss, hotPix, signalPerPixPerFrame, detPixAcross, CRtailLen, CRhitsPerFrame, det_QE):
-    det_PC_threshold_efficiency = 1 - PCeffloss
+# def getdetdQE(det_CTE, PCeffloss, hotPix, signalPerPixPerFrame, detPixAcross, CRtailLen, CRhitsPerFrame, det_QE):
+#     det_PC_threshold_efficiency = 1 - PCeffloss
    
-    signal_region_electron_rate = signalPerPixPerFrame * det_CTE
+#     signal_region_electron_rate = signalPerPixPerFrame * det_CTE
 
-    # Photon-counting coincidence efficiency 
-    det_PC_coincid_effic = (1 - math.exp(-signal_region_electron_rate))\
-        / (signal_region_electron_rate)
+#     # Photon-counting coincidence efficiency 
+#     det_PC_coincid_effic = (1 - math.exp(-signal_region_electron_rate))\
+#         / (signal_region_electron_rate)
     
-    # Efficiency after subtracting fraction lost to hot pixels
-    det_hotPix = 1 - hotPix
+#     # Efficiency after subtracting fraction lost to hot pixels
+#     det_hotPix = 1 - hotPix
 
-    det_cosmicRays = 1 - CRhitsPerFrame * CRtailLen/(detPixAcross**2)
+#     det_cosmicRays = 1 - CRhitsPerFrame * CRtailLen/(detPixAcross**2)
     
-    estimated_dQE_CBE = det_QE * det_CTE * det_PC_threshold_efficiency * \
-            det_PC_coincid_effic * det_hotPix * det_cosmicRays
+#     estimated_dQE_CBE = det_QE * det_CTE * det_PC_threshold_efficiency * \
+#             det_PC_coincid_effic * det_hotPix * det_cosmicRays
     
-    return signal_region_electron_rate, det_PC_threshold_efficiency,\
-        det_PC_coincid_effic, det_hotPix, det_cosmicRays, estimated_dQE_CBE 
+#     return signal_region_electron_rate, det_PC_threshold_efficiency,\
+#         det_PC_coincid_effic, det_hotPix, det_cosmicRays, estimated_dQE_CBE 
 
 
 
@@ -790,13 +790,13 @@ def DRM_tableofNsigma(N_sigmaSens, infiniteTimeSens, planetWA, lamD):
     
     return separation, nsigmasens_finite, nsigmasens_inf
 
-def getQE(scenarioData, QE_Data):
+# def getQE(scenarioData, QE_Data):
     
-    lam = float(scenarioData.at['CenterLambda_nm','Latest'])
-    indQE = QE_Data.df.loc[QE_Data.df['lambda_nm']<=(lam),'lambda_nm'].idxmax()
-    det_QE  = QE_Data.df.at[indQE,'QE_at_neg100degC']
+#     lam = float(scenarioData.at['CenterLambda_nm','Latest'])
+#     indQE = QE_Data.df.loc[QE_Data.df['lambda_nm']<=(lam),'lambda_nm'].idxmax()
+#     det_QE  = QE_Data.df.at[indQE,'QE_at_neg100degC']
     
-    return det_QE
+#     return det_QE
 
 
 def throughput_pars(perfLevel, THPT_Data, scenarioData, CG_occulter_transmission,\
