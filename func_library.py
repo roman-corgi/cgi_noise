@@ -258,51 +258,51 @@ def getDarkCurrent(DET_CBE_Data, monthsatL2):
     return detDarkBOM, detDarkEOM, DarkCur_epoch_per_s, DarkCur_epoch_per_hr,\
         missionFraction, detEOL_mos
 
-def coronagraph_pars(CG_Data, planetWA, IWA, DPM, lamD):
+# def coronagraph_pars(CG_Data, planetWA, IWA, DPM, lamD):
     
-    # #Coronagraph Parameters ---need planet WA and IWA and OWA
+#     # #Coronagraph Parameters ---need planet WA and IWA and OWA
     
-    CorforPol = 0;
-    CGtauPol = 1 + CorforPol;
+#     CorforPol = 0;
+#     CGtauPol = 1 + CorforPol;
        
-    indWA = CG_Data.df[(CG_Data.df.rlamD <=planetWA)]['rlamD'].idxmax(axis=0)# index of last radial slice < planet's radius
+#     indWA = CG_Data.df[(CG_Data.df.rlamD <=planetWA)]['rlamD'].idxmax(axis=0)# index of last radial slice < planet's radius
      
-    # Frac light incident on primary in FWHM of PSF centered at r
-    modelCoreThput = CG_Data.df.loc[indWA,'coreThruput']*CGtauPol
+#     # Frac light incident on primary in FWHM of PSF centered at r
+#     modelCoreThput = CG_Data.df.loc[indWA,'coreThruput']*CGtauPol
     
-    # Frac light in peak pixel of PSF centered at r & normalized to flux
-    PSFpeakI = CG_Data.df.loc[indWA,'PSFpeak']*CGtauPol
+#     # Frac light in peak pixel of PSF centered at r & normalized to flux
+#     PSFpeakI = CG_Data.df.loc[indWA,'PSFpeak']*CGtauPol
     
-    # Area of FWHM of PSF centered at r
-    omegaPSF = CG_Data.df.loc[indWA,'area_sq_arcsec']
+#     # Area of FWHM of PSF centered at r
+#     omegaPSF = CG_Data.df.loc[indWA,'area_sq_arcsec']
       
-    # radius used in CGperf as best match to target working angle
-    CGradius_arcsec = CG_Data.df.at[indWA,'r_as']
+#     # radius used in CGperf as best match to target working angle
+#     CGradius_arcsec = CG_Data.df.at[indWA,'r_as']
     
-    CGdesignWL = DPM * CG_Data.df.iloc[0,1] * uc.arcsec / CG_Data.df.iloc[0,0]
+#     CGdesignWL = DPM * CG_Data.df.iloc[0,1] * uc.arcsec / CG_Data.df.iloc[0,0]
     
-    # sampling used by John Krist in generating CG results (intrinsic sampling)
-    CGintSamp  = CG_Data.df.loc[2,'rlamD']-CG_Data.df.loc[1,'rlamD'] 
+#     # sampling used by John Krist in generating CG results (intrinsic sampling)
+#     CGintSamp  = CG_Data.df.loc[2,'rlamD']-CG_Data.df.loc[1,'rlamD'] 
     
-    # pixels within PSF core assuming instrinsic sampling
-    CGintmpix = omegaPSF * (uc.arcsec**2)/((CGintSamp*CGdesignWL/DPM)**2) #mpixIntrinsic
+#     # pixels within PSF core assuming instrinsic sampling
+#     CGintmpix = omegaPSF * (uc.arcsec**2)/((CGintSamp*CGdesignWL/DPM)**2) #mpixIntrinsic
     
-    CG_PSFarea_sqlamD = omegaPSF/(lamD/uc.arcsec)**2
+#     CG_PSFarea_sqlamD = omegaPSF/(lamD/uc.arcsec)**2
     
-    CGintmpix = omegaPSF * (uc.arcsec**2)/((CGintSamp*CGdesignWL/DPM)**2) #mpixIntrinsic
+#     CGintmpix = omegaPSF * (uc.arcsec**2)/((CGintSamp*CGdesignWL/DPM)**2) #mpixIntrinsic
      
-    # Speckle intensity at r (normalized to flux)
-    CGintensity = CG_Data.df.loc[indWA,'I']
+#     # Speckle intensity at r (normalized to flux)
+#     CGintensity = CG_Data.df.loc[indWA,'I']
     
-    # Occulter*lyot stop transmission at r
-    CG_occulter_transmission = CG_Data.df.at[indWA, 'occTrans']*CGtauPol
+#     # Occulter*lyot stop transmission at r
+#     CG_occulter_transmission = CG_Data.df.at[indWA, 'occTrans']*CGtauPol
    
-    #  Intensity/PSF_Peak
-    CGcontrast = CG_Data.df.loc[indWA,'contrast']
+#     #  Intensity/PSF_Peak
+#     CGcontrast = CG_Data.df.loc[indWA,'contrast']
     
-    return CGtauPol, indWA, modelCoreThput, PSFpeakI, omegaPSF, CGintSamp,\
-        CGradius_arcsec, CGdesignWL, CGintmpix, CG_PSFarea_sqlamD, CGintensity,\
-            CG_occulter_transmission, CGcontrast
+#     return CGtauPol, indWA, modelCoreThput, PSFpeakI, omegaPSF, CGintSamp,\
+#         CGradius_arcsec, CGdesignWL, CGintmpix, CG_PSFarea_sqlamD, CGintensity,\
+#             CG_occulter_transmission, CGcontrast
 
 def getFocalPlaneAttributes(opMode, scenarioData, DET_CBE_Data, lam, bandWidth, DPM, CGdesignWL, omegaPSF):
     filenamedir = current_dir
@@ -339,40 +339,41 @@ def getFocalPlaneAttributes(opMode, scenarioData, DET_CBE_Data, lam, bandWidth, 
         raise Exception("getFocalPlaneAttributes:  Valid Operational Modes are IMG and SPEC")
     
     return f_SR, CritLam, detPixSize_m, mpix, pixPlateSc
-          
-def getSpectra( target, lam, bandWidth):
-    filenamedir = current_dir
-    SpectraFolder = os.path.join(filenamedir,'EBcsvData','Spectra')
+
+
+# def getSpectra( target, lam, bandWidth):
+#     filenamedir = current_dir
+#     SpectraFolder = os.path.join(filenamedir,'EBcsvData','Spectra')
     
-    #### Using hardcoded csv filename
-    SPECTRA_file = os.path.abspath(os.path.join(SpectraFolder,"SPECTRA_ALL_BPGS.csv"))
-    SPECTRA_Data = loadCSVrow(SPECTRA_file)# Spectra data csv to dataframe
+#     #### Using hardcoded csv filename
+#     SPECTRA_file = os.path.abspath(os.path.join(SpectraFolder,"SPECTRA_ALL_BPGS.csv"))
+#     SPECTRA_Data = loadCSVrow(SPECTRA_file)# Spectra data csv to dataframe
     
-    # rows of the spectra within the request band
-    bandRange = SPECTRA_Data.df[abs(SPECTRA_Data.df['Wavelength_m'] - lam)  <= (0.5*bandWidth*lam)]
+#     # rows of the spectra within the request band
+#     bandRange = SPECTRA_Data.df[abs(SPECTRA_Data.df['Wavelength_m'] - lam)  <= (0.5*bandWidth*lam)]
         
-    # temporarily remove the Wavelength column, 
-    # since we want to divide the different spectral types by EPhot
-    onlySpec = bandRange.drop(['Wavelength_m', 'E_ph_J'], axis=1)
+#     # temporarily remove the Wavelength column, 
+#     # since we want to divide the different spectral types by EPhot
+#     onlySpec = bandRange.drop(['Wavelength_m', 'E_ph_J'], axis=1)
         
-    # Calculate scalar Ephot
-    Ephot = uc.h_planck * uc.c_light / (lam)
+#     # Calculate scalar Ephot
+#     Ephot = uc.h_planck * uc.c_light / (lam)
     
-    # Divide each element in each column by Ephot
-    onlySpecEphot = onlySpec.apply(lambda x:x/Ephot, axis =1, result_type ='broadcast')
+#     # Divide each element in each column by Ephot
+#     onlySpecEphot = onlySpec.apply(lambda x:x/Ephot, axis =1, result_type ='broadcast')
     
-    # Calculate the increments of wavelength in the table
-    deltaLambda = SPECTRA_Data.df.at[2,'Wavelength_m'] -SPECTRA_Data.df.at[1,'Wavelength_m']
+#     # Calculate the increments of wavelength in the table
+#     deltaLambda = SPECTRA_Data.df.at[2,'Wavelength_m'] -SPECTRA_Data.df.at[1,'Wavelength_m']
     
-    # sum of each of spectral types over multiple wavelengths within band
-    inBandFlux0_sum = (onlySpecEphot.sum(axis=0)) * deltaLambda
+#     # sum of each of spectral types over multiple wavelengths within band
+#     inBandFlux0_sum = (onlySpecEphot.sum(axis=0)) * deltaLambda
     
-    # Get spectrum for star to find inBWflux0
-    inBandZeroMagFlux = inBandFlux0_sum.at[target.specType]
+#     # Get spectrum for star to find inBWflux0
+#     inBandZeroMagFlux = inBandFlux0_sum.at[target.specType]
     
-    starFlux = inBandZeroMagFlux * 10**((-0.4)*target.v_mag) # ph/s/m^2
+#     starFlux = inBandZeroMagFlux * 10**((-0.4)*target.v_mag) # ph/s/m^2
       
-    return inBandFlux0_sum, inBandZeroMagFlux, starFlux
+#     return inBandFlux0_sum, inBandZeroMagFlux, starFlux
 
 def getFluxRatio(target, starFlux):
       
@@ -383,50 +384,50 @@ def getFluxRatio(target, starFlux):
     
     return fluxRatio, planetFlux
 
-def getrefStarRDI(target, inBandFlux0_sum, starFlux,\
-                  RefStarSpecType, RefStarVmag,\
-                      RefStarDist, RefStarExoZodi, timeOnRef):
+# def getrefStarRDI(target, inBandFlux0_sum, starFlux,\
+#                   RefStarSpecType, RefStarVmag,\
+#                       RefStarDist, RefStarExoZodi, timeOnRef):
     
-    # Observing scenario is RDI with one observation of a brighter reference
-    # and one observation of the target. The noise is computed effective after the
-    # speckle subtraction. To the observation 
+#     # Observing scenario is RDI with one observation of a brighter reference
+#     # and one observation of the target. The noise is computed effective after the
+#     # speckle subtraction. To the observation 
     
-    RefStarAbsMag = RefStarVmag - 5*math.log10(RefStarDist/10)
-    RefStarinBandZeroMagFlux = inBandFlux0_sum.at[RefStarSpecType]
-    RefStarDeltaMag = target.v_mag - RefStarVmag
-    RefStarFlux = RefStarinBandZeroMagFlux*(10**((-0.4)*RefStarVmag))
-    BrightnessRatio = RefStarFlux/starFlux
-    betaRDI = 1 / (BrightnessRatio*timeOnRef)
+#     RefStarAbsMag = RefStarVmag - 5*math.log10(RefStarDist/10)
+#     RefStarinBandZeroMagFlux = inBandFlux0_sum.at[RefStarSpecType]
+#     RefStarDeltaMag = target.v_mag - RefStarVmag
+#     RefStarFlux = RefStarinBandZeroMagFlux*(10**((-0.4)*RefStarVmag))
+#     BrightnessRatio = RefStarFlux/starFlux
+#     betaRDI = 1 / (BrightnessRatio*timeOnRef)
     
-    k_sp = 1 + betaRDI
-    k_det = 1 + betaRDI**2 * timeOnRef
-    k_lzo = k_det
-    k_ezo = k_sp
+#     k_sp = 1 + betaRDI
+#     k_det = 1 + betaRDI**2 * timeOnRef
+#     k_lzo = k_det
+#     k_ezo = k_sp
             
-    v_sp = math.sqrt(betaRDI)
-    v_det = betaRDI * math.sqrt(timeOnRef)
-    v_lzo = betaRDI * math.sqrt(timeOnRef)
-    v_ezo = math.sqrt(betaRDI)
+#     v_sp = math.sqrt(betaRDI)
+#     v_det = betaRDI * math.sqrt(timeOnRef)
+#     v_lzo = betaRDI * math.sqrt(timeOnRef)
+#     v_ezo = math.sqrt(betaRDI)
        
-    return RefStarVmag, RefStarAbsMag, RefStarinBandZeroMagFlux, RefStarDeltaMag,\
-         RefStarFlux, BrightnessRatio, betaRDI, k_sp, k_det, k_lzo, k_ezo,\
-             v_sp, v_det, v_lzo, v_ezo
+#     return RefStarVmag, RefStarAbsMag, RefStarinBandZeroMagFlux, RefStarDeltaMag,\
+#          RefStarFlux, BrightnessRatio, betaRDI, k_sp, k_det, k_lzo, k_ezo,\
+#              v_sp, v_det, v_lzo, v_ezo
                  
-def getZodi(magLocalZodi, magExoZodi_1AU, target, inBandZeroMagFlux, omegaPSF):
-    # Zodi brightness - assume local zodi = 22.1 mag /arcsec**2 in V band
-    # assume  skynoise = (local-zodi + exo-zodi)
-    absMag = target.v_mag - 5 * math.log10(target.dist_pc / 10)
+# def getZodi(magLocalZodi, magExoZodi_1AU, target, inBandZeroMagFlux, omegaPSF):
+#     # Zodi brightness - assume local zodi = 22.1 mag /arcsec**2 in V band
+#     # assume  skynoise = (local-zodi + exo-zodi)
+#     absMag = target.v_mag - 5 * math.log10(target.dist_pc / 10)
                
-    # zodi solid angular flux in units of ph/s/m**2/arcsec**2
-    loZodiAngFlux =  inBandZeroMagFlux *10**((-0.4)* magLocalZodi) 
-    exoZodiAngFlux = target.exoZodi * inBandZeroMagFlux * \
-                    10**(-0.4*(absMag-uc.sunAbsMag+magExoZodi_1AU)) / (target.sma_AU**2) 
+#     # zodi solid angular flux in units of ph/s/m**2/arcsec**2
+#     loZodiAngFlux =  inBandZeroMagFlux *10**((-0.4)* magLocalZodi) 
+#     exoZodiAngFlux = target.exoZodi * inBandZeroMagFlux * \
+#                     10**(-0.4*(absMag-uc.sunAbsMag+magExoZodi_1AU)) / (target.sma_AU**2) 
             
-    ZodiFlux    = (loZodiAngFlux + exoZodiAngFlux) * omegaPSF 
-    loZodiFlux  = loZodiAngFlux * omegaPSF 
-    exoZodiFlux = exoZodiAngFlux * omegaPSF     
+#     ZodiFlux    = (loZodiAngFlux + exoZodiAngFlux) * omegaPSF 
+#     loZodiFlux  = loZodiAngFlux * omegaPSF 
+#     exoZodiFlux = exoZodiAngFlux * omegaPSF     
    
-    return ZodiFlux, exoZodiAngFlux, loZodiAngFlux, loZodiFlux, exoZodiFlux, absMag
+#     return ZodiFlux, exoZodiAngFlux, loZodiAngFlux, loZodiFlux, exoZodiFlux, absMag
 
 def getNoiseRates(f_SR, starFlux, fluxRatio, colArea, thpt_t_pnt, thpt_tau_pk, thpt_t_speckle,\
              det_QE, exoZodiFlux, loZodiFlux, thpt_t_unif, k_comp, rawContrast,\
