@@ -294,8 +294,7 @@ f_SR, CritLam, detPixSize_m, mpix, pixPlateSc\
     = fl.getFocalPlaneAttributes(opMode, scenarioDF, DET_CBE_Data, lam, bandWidth,\
                         DPM, CGdesignWL, omegaPSF)
 
-inBandFlux0_sum, inBandZeroMagFlux, starFlux\
-    = fl.getSpectra(target, lam, bandWidth)
+inBandFlux0_sum, inBandZeroMagFlux, starFlux = fl.getSpectra(target, lam, bandWidth)
 
 print(starFlux)
 

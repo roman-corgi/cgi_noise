@@ -355,8 +355,8 @@ def getSpectra( target, lam, bandWidth):
     SPECTRA_file = os.path.abspath(os.path.join(SpectraFolder,"SPECTRA_ALL_BPGS.csv"))
     SPECTRA_Data = loadCSVrow(SPECTRA_file)# Spectra data csv to dataframe
     
-    # range of spectra in band (B1, B3, B4)
-    bandRange = SPECTRA_Data.df[abs(SPECTRA_Data.df['Wavelength_m'] - (lam*uc.nm))  <= (0.5*bandWidth*lam*uc.nm)]
+    # rows of the spectra within the request band
+    bandRange = SPECTRA_Data.df[abs(SPECTRA_Data.df['Wavelength_m'] - lam)  <= (0.5*bandWidth*lam)]
         
     # temporarily remove the Wavelength column, 
     # since we want to divide the different spectral types by EPhot
