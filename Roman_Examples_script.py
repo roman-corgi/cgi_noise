@@ -354,14 +354,22 @@ signal_region_electron_rate, det_PC_threshold_efficiency,\
     = fl.getdetdQE( det_CTE, PCeffloss, hotPix,\
             signalPerPixPerFrame, detPixAcross, CRtailLen, CRhitsPerFrame, det_QE)
 
-planetRate_proc, speckleRate_proc, zodiRate_proc,\
-            ezo_bkgRate, lzo_bkgRate, residSpecRate\
-    = fl.getNoiseVarianceRatesI( f_SR, starFlux, planetFlux, colArea, rawContrast, \
-          thpt_t_pnt, thpt_t_speckle, thpt_tau_pk, CGintmpix, k_pp_CBE,\
-                 dQE, rate_exoZodi_incPht, rate_loZodi_incPht,\
-                     selDeltaC)
+# planetRate_proc, speckleRate_proc, zodiRate_proc,\
+#             ezo_bkgRate, lzo_bkgRate, residSpecRate\
+#     = fl.getNoiseVarianceRatesI( f_SR, starFlux, planetFlux, colArea, rawContrast, \
+#           thpt_t_pnt, thpt_t_speckle, thpt_tau_pk, CGintmpix, k_pp_CBE,\
+#                  dQE, rate_exoZodi_incPht, rate_loZodi_incPht,\
+#                      selDeltaC)
 
+planetRate_proc = f_SR*planetFlux*colArea*thpt_t_pnt*dQE
 
+speckleRate_proc = f_SR * starFlux * rawContrast * thpt_tau_pk * CGintmpix * thpt_t_speckle * colArea * dQE * uc.ppb
+
+ezo_bkgRate = rate_exoZodi_incPht * dQE
+lzo_bkgRate = rate_loZodi_incPht * dQE
+zodiRate_proc = ezo_bkgRate + lzo_bkgRate
+
+residSpecRate =  f_SR * starFlux * (selDeltaC/k_pp_CBE) * thpt_tau_pk * CGintmpix * thpt_t_speckle * colArea * dQE
 # In[ ]:
 
 
@@ -375,13 +383,34 @@ Kappa = SNRtarget / (f_SR*starFlux*colArea*thpt_t_pnt*dQE\
 #                       usableTinteg, hostStar_type, inBandFlux0_sum,\
 #                           f_SR, CGintmpix, colArea, thpt_t_speckle)
 
-totNoiseVarRate, readNoiseRate, CIC_RNLK_noiseRate, darkNoiseRate, zodi_shot, speckle_shot, planet_shot=\
-        fl.getNoiseVarianceRatesII(planetRate_proc, speckleRate_proc, zodiRate_proc,\
-        ezo_bkgRate, lzo_bkgRate, residSpecRate, rate_planet_imgArea, ENF,\
-            DarkCur_epoch_per_s, readNoise_leakage_in_current_units,\
-            mpix, det_CIC_in_DC_units, readNoise, frameTime, isPhotonCounting,\
-                k_sp, k_lzo, k_ezo, k_det, dQE)
+# totNoiseVarRate, readNoiseRate, CIC_RNLK_noiseRate, darkNoiseRate, zodi_shot, speckle_shot, planet_shot=\
+#         fl.getNoiseVarianceRatesII(planetRate_proc, speckleRate_proc, zodiRate_proc,\
+#         ezo_bkgRate, lzo_bkgRate, residSpecRate, rate_planet_imgArea, ENF,\
+#             DarkCur_epoch_per_s, readNoise_leakage_in_current_units,\
+#             mpix, det_CIC_in_DC_units, readNoise, frameTime, isPhotonCounting,\
+#                 k_sp, k_lzo, k_ezo, k_det, dQE)
 
+
+planet_shot = planetRate_proc * ENF**2
+speckle_shot = speckleRate_proc * ENF**2
+zodi_shot = zodiRate_proc * ENF**2
+darkNoiseRate = mpix * DarkCur_epoch_per_s * ENF**2
+
+
+if isPhotonCounting:
+    CIC_RNLK_noiseRate = ENF**2*mpix*(det_CIC_in_DC_units +\
+                                      readNoise_leakage_in_current_units)
+else:
+    CIC_RNLK_noiseRate = ENF**2*mpix*(det_CIC_in_DC_units)
+
+readNoiseRate = (mpix/frameTime) * readNoise**2   
+
+totNoiseVarRate = ENF**2 * (rate_planet_imgArea +\
+                          k_sp * speckleRate_proc +\
+                          k_lzo * lzo_bkgRate +\
+                          k_ezo * ezo_bkgRate ) +\
+                    k_det * (darkNoiseRate + CIC_RNLK_noiseRate) +\
+                    k_det * readNoiseRate
 
 # ## Calculations for Specified Planet
 # Substitute for usableTinteg:

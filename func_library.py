@@ -594,23 +594,7 @@ def getdetdQE(det_CTE, PCeffloss, hotPix, signalPerPixPerFrame, detPixAcross, CR
     return signal_region_electron_rate, det_PC_threshold_efficiency,\
         det_PC_coincid_effic, det_hotPix, det_cosmicRays, estimated_dQE_CBE 
 
-def getNoiseVarianceRatesI( f_SR, starFlux, planetFlux, colArea, rawContrast, \
-              thpt_t_pnt, thpt_t_speckle, thpt_tau_pk, CGintmpix, k_pp,\
-                     dQE, rate_exoZodi_incPht, rate_loZodi_incPht,\
-                         selDeltaC):
-    """rates for time to SNR"""
-    planetRate_proc = f_SR*planetFlux*colArea*thpt_t_pnt*dQE
 
-    speckleRate_proc = f_SR * starFlux * rawContrast * thpt_tau_pk * CGintmpix * thpt_t_speckle * colArea * dQE * uc.ppb
-    
-    ezo_bkgRate = rate_exoZodi_incPht * dQE
-    lzo_bkgRate = rate_loZodi_incPht * dQE
-    zodiRate_proc = ezo_bkgRate + lzo_bkgRate
-    
-    residSpecRate =  f_SR * starFlux * (selDeltaC/k_pp) * thpt_tau_pk * CGintmpix * thpt_t_speckle * colArea * dQE
-            
-    return planetRate_proc, speckleRate_proc, zodiRate_proc,\
-            ezo_bkgRate, lzo_bkgRate, residSpecRate
 
 # def intTime(dutyFactor, allocTinteg):
 #     # return the available actual integration time, given a duty factor and the total allocated integration time for the observation
@@ -813,34 +797,6 @@ def getQE(scenarioData, QE_Data):
     
     return det_QE
 
-def getNoiseVarianceRatesII(planetRate_proc, speckleRate_proc, zodiRate_proc,\
-            ezo_bkgRate, lzo_bkgRate, residSpecRate, rate_planet_imgArea, ENF,\
-                DarkCur_epoch_per_s, readNoise_leakage_in_current_units,\
-                mpix, det_CIC_in_DC_units, readNoise, frameTime, isPhotonCounting,\
-                    k_sp, k_lzo, k_ezo, k_det, dQE):    
-    
-    planet_shot = planetRate_proc * ENF**2
-    speckle_shot = speckleRate_proc * ENF**2
-    zodi_shot = zodiRate_proc * ENF**2
-    darkNoiseRate = mpix * DarkCur_epoch_per_s * ENF**2
-
-
-    if isPhotonCounting:
-        CIC_RNLK_noiseRate = ENF**2*mpix*(det_CIC_in_DC_units +\
-                                          readNoise_leakage_in_current_units)
-    else:
-        CIC_RNLK_noiseRate = ENF**2*mpix*(det_CIC_in_DC_units)
-    
-    readNoiseRate = (mpix/frameTime) * readNoise**2   
-    
-    totNoiseVarRate = ENF**2 * (rate_planet_imgArea +\
-                              k_sp * speckleRate_proc +\
-                              k_lzo * lzo_bkgRate +\
-                              k_ezo * ezo_bkgRate ) +\
-                        k_det * (darkNoiseRate + CIC_RNLK_noiseRate) +\
-                        k_det * readNoiseRate
-    
-    return totNoiseVarRate, readNoiseRate, CIC_RNLK_noiseRate, darkNoiseRate, zodi_shot, speckle_shot, planet_shot
 
 def throughput_pars(perfLevel, THPT_Data, scenarioData, CG_occulter_transmission,\
                     CGcoreThruput, PSFpeakI, CGtauPol, omegaPSF, DPM, lamD):
