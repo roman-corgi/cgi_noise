@@ -409,8 +409,13 @@ print(f"starFlux = {starFlux:3e}")
 
 # In[17]:
 
+# fluxRatio = fl.Target.alb_rad_sma_to_fluxRatio(target.albedo,\
+#                                             target.radius_Rjup,\
+#                                                 target.sma_AU)
+fluxRatio = target.albedo * (target.radius_Rjup * uc.jupiterRadius / (target.sma_AU * uc.AU) )**2
+planetFlux = fluxRatio * starFlux
 
-fluxRatio, planetFlux = fl.getFluxRatio(target, starFlux)
+# fluxRatio, planetFlux = fl.getFluxRatio(target, starFlux)
 
 # Observing scenario is RDI with one observation of a brighter reference
 # and one observation of the target.
@@ -462,22 +467,52 @@ ZodiFlux    = (loZodiAngFlux + exoZodiAngFlux) * omegaPSF
 loZodiFlux  = loZodiAngFlux * omegaPSF
 exoZodiFlux = exoZodiAngFlux * omegaPSF
 
+# In[18]:
+
+rate_planet_imgArea = f_SR * starFlux * fluxRatio * colArea * thpt_t_pnt * det_QE
+
+rate_exoZodi_incPht = f_SR * exoZodiFlux * colArea * thpt_t_unif
+
+rate_loZodi_incPht =  f_SR * loZodiFlux * colArea * thpt_t_unif 
+  
+rate_Zodi_imgArea = (rate_exoZodi_incPht + rate_loZodi_incPht)*det_QE
+
+# speckleRate_imgArea
+rate_speckleBkg = f_SR * starFlux * rawContrast * uc.ppb * thpt_tau_pk * \
+    CGintmpix * colArea * thpt_t_speckle  * det_QE 
+    
+# total rate pixel with planet
+rate_photoConverted = DarkCur_epoch_per_s +  (rate_planet_imgArea + rate_Zodi_imgArea + rate_speckleBkg )/mpix
+
+rate_totalwithoutplanet =  DarkCur_epoch_per_s + (rate_Zodi_imgArea + rate_speckleBkg )/mpix
 
 
 
+# rate_planet_imgArea, rate_Zodi_imgArea, rate_exoZodi_incPht,\
+#     rate_loZodi_incPht, rate_speckleBkg, rate_photoConverted,\
+#         rate_totalwithoutplanet \
+#     = fl.getNoiseRates(f_SR, starFlux, fluxRatio, colArea, thpt_t_pnt, thpt_tau_pk,\
+#               thpt_t_speckle, det_QE, exoZodiFlux, loZodiFlux, thpt_t_unif, k_comp,\
+#               rawContrast,CGintmpix, mpix, DarkCur_epoch_per_s)
 
+# frameTime, frameTime_ANLG,maxANLGt_fr,maxPCt_fr, detEMgain\
+#     = fl.getFrameExposureTime(DET_CBE_Data, FWC_gr, rate_totalwithoutplanet,\
+#                      rate_photoConverted, isPhotonCounting)
 
-rate_planet_imgArea, rate_Zodi_imgArea, rate_exoZodi_incPht,\
-    rate_loZodi_incPht, rate_speckleBkg, rate_photoConverted,\
-        rate_totalwithoutplanet \
-    = fl.getNoiseRates(f_SR, starFlux, fluxRatio, colArea, thpt_t_pnt, thpt_tau_pk,\
-              thpt_t_speckle, det_QE, exoZodiFlux, loZodiFlux, thpt_t_unif, k_comp,\
-              rawContrast,CGintmpix, mpix, DarkCur_epoch_per_s)
+detEMgain = DET_CBE_Data.df.at[0,'EMGain'] # Electron multiplication gain
 
-frameTime, frameTime_ANLG,maxANLGt_fr,maxPCt_fr, detEMgain\
-    = fl.getFrameExposureTime(DET_CBE_Data, FWC_gr, rate_totalwithoutplanet,\
-                     rate_photoConverted, isPhotonCounting)
+# maximum frame exposure time for analog
+maxANLGt_fr= 0.9*FWC_gr/(3*detEMgain*rate_totalwithoutplanet)
 
+frameTime_ANLG = min(maxANLGt_fr,100)
+
+# calculated frame exposure time for photon counting opt frame
+maxPCt_fr = round(min(80, max(3, 0.1/rate_photoConverted)))
+
+if isPhotonCounting:    
+    frameTime = maxPCt_fr
+else: # analog
+    frameTime = frameTime_ANLG
 
 # In[18]:
 
@@ -492,11 +527,32 @@ CTE_clocking_efficiency, CTE_traps, signalPerPixPerFrame = fl.getCTE(DET_CBE_Dat
 hotPixFrac, hotPix = fl.gethotPixels(DET_CBE_Data, missionFraction)
 
 ENF = fl.getENF(isPhotonCounting)
+
 detCamRead = DET_CBE_Data.df.at[0,'ReadNoise_e']
 
-readNoise, readNoise_leakage, readNoise_leakage_in_current_units,\
-     PCeffloss, readNoise_w_gain\
-   = fl.getReadNoiseandPCeffloss(detCamRead, detPCthreshold, isPhotonCounting, frameTime, detEMgain)
+# readNoise, readNoise_leakage, readNoise_leakage_in_current_units,\
+#      PCeffloss, readNoise_w_gain\
+#    = fl.getReadNoiseandPCeffloss(detCamRead, detPCthreshold, isPhotonCounting, frameTime, detEMgain)
+
+"""Read noise"""
+readNoise_w_gain = detCamRead/detEMgain # read noise with gain if analog
+
+if isPhotonCounting:
+    readNoise = 0 # Minimal read noise with photon counting
+else:
+    readNoise = readNoise_w_gain # read noise with gain if analog
+
+readNoise_leakage = 0.5*math.erfc((detPCthreshold/math.sqrt(2)))
+
+readNoise_leakage_in_current_units = readNoise_leakage/frameTime
+
+if isPhotonCounting:
+    PCeffloss = 1 - math.exp( -detPCthreshold*detCamRead/detEMgain)
+else:
+    PCeffloss = 0
+
+# In[18]:
+
 det_CTE = CTE_clocking_efficiency * CTE_traps
 
 det_PC_threshold_efficiency = 1 - PCeffloss

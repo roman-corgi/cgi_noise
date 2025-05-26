@@ -375,14 +375,14 @@ def getFocalPlaneAttributes(opMode, scenarioData, DET_CBE_Data, lam, bandWidth, 
       
 #     return inBandFlux0_sum, inBandZeroMagFlux, starFlux
 
-def getFluxRatio(target, starFlux):
+# def getFluxRatio(target, starFlux):
       
-    fluxRatio = Target.alb_rad_sma_to_fluxRatio(target.albedo,\
-                                                target.radius_Rjup,\
-                                                    target.sma_AU)
-    planetFlux = fluxRatio * starFlux
+#     fluxRatio = Target.alb_rad_sma_to_fluxRatio(target.albedo,\
+#                                                 target.radius_Rjup,\
+#                                                     target.sma_AU)
+#     planetFlux = fluxRatio * starFlux
     
-    return fluxRatio, planetFlux
+#     return fluxRatio, planetFlux
 
 # def getrefStarRDI(target, inBandFlux0_sum, starFlux,\
 #                   RefStarSpecType, RefStarVmag,\
@@ -429,54 +429,54 @@ def getFluxRatio(target, starFlux):
    
 #     return ZodiFlux, exoZodiAngFlux, loZodiAngFlux, loZodiFlux, exoZodiFlux, absMag
 
-def getNoiseRates(f_SR, starFlux, fluxRatio, colArea, thpt_t_pnt, thpt_tau_pk, thpt_t_speckle,\
-             det_QE, exoZodiFlux, loZodiFlux, thpt_t_unif, k_comp, rawContrast,\
-                 CGintmpix, mpix, DarkCur_epoch_per_s):
+# def getNoiseRates(f_SR, starFlux, fluxRatio, colArea, thpt_t_pnt, thpt_tau_pk, thpt_t_speckle,\
+#              det_QE, exoZodiFlux, loZodiFlux, thpt_t_unif, k_comp, rawContrast,\
+#                  CGintmpix, mpix, DarkCur_epoch_per_s):
     
-    rate_planet_imgArea = f_SR * starFlux * fluxRatio * colArea * thpt_t_pnt * det_QE
+#     rate_planet_imgArea = f_SR * starFlux * fluxRatio * colArea * thpt_t_pnt * det_QE
     
-    rate_exoZodi_incPht = f_SR * exoZodiFlux * colArea * thpt_t_unif
+#     rate_exoZodi_incPht = f_SR * exoZodiFlux * colArea * thpt_t_unif
     
-    rate_loZodi_incPht =  f_SR * loZodiFlux * colArea * thpt_t_unif 
+#     rate_loZodi_incPht =  f_SR * loZodiFlux * colArea * thpt_t_unif 
       
-    rate_Zodi_imgArea = (rate_exoZodi_incPht + rate_loZodi_incPht)*det_QE
+#     rate_Zodi_imgArea = (rate_exoZodi_incPht + rate_loZodi_incPht)*det_QE
 
-    # speckleRate_imgArea
-    rate_speckleBkg = f_SR * starFlux * rawContrast * uc.ppb * thpt_tau_pk * \
-        CGintmpix * colArea * thpt_t_speckle  * det_QE 
+#     # speckleRate_imgArea
+#     rate_speckleBkg = f_SR * starFlux * rawContrast * uc.ppb * thpt_tau_pk * \
+#         CGintmpix * colArea * thpt_t_speckle  * det_QE 
         
-    # total rate pixel with planet
-    rate_photoConverted = DarkCur_epoch_per_s +  (rate_planet_imgArea + rate_Zodi_imgArea + rate_speckleBkg )/mpix
+#     # total rate pixel with planet
+#     rate_photoConverted = DarkCur_epoch_per_s +  (rate_planet_imgArea + rate_Zodi_imgArea + rate_speckleBkg )/mpix
     
-    rate_totalwithoutplanet =  DarkCur_epoch_per_s + (rate_Zodi_imgArea + rate_speckleBkg )/mpix
+#     rate_totalwithoutplanet =  DarkCur_epoch_per_s + (rate_Zodi_imgArea + rate_speckleBkg )/mpix
 
-    return rate_planet_imgArea, rate_Zodi_imgArea, rate_exoZodi_incPht,\
-        rate_loZodi_incPht, rate_speckleBkg, rate_photoConverted,\
-            rate_totalwithoutplanet
+#     return rate_planet_imgArea, rate_Zodi_imgArea, rate_exoZodi_incPht,\
+#         rate_loZodi_incPht, rate_speckleBkg, rate_photoConverted,\
+#             rate_totalwithoutplanet
         
 
-def getFrameExposureTime(DET_CBE_Data, FWC_gr, rate_totalwithoutplanet,\
-                         rate_photoConverted, isPhotonCounting):
+# def getFrameExposureTime(DET_CBE_Data, FWC_gr, rate_totalwithoutplanet,\
+#                          rate_photoConverted, isPhotonCounting):
     
-    # Calculate Frame Time for CIC in dark current units and CR hits per frame
-    # This is for Photon Counting
+#     # Calculate Frame Time for CIC in dark current units and CR hits per frame
+#     # This is for Photon Counting
     
-    detEMgain = DET_CBE_Data.df.at[0,'EMGain'] # Electron multiplication gain
+#     detEMgain = DET_CBE_Data.df.at[0,'EMGain'] # Electron multiplication gain
 
-    # maximum frame exposure time for analog
-    maxANLGt_fr= 0.9*FWC_gr/(3*detEMgain*rate_totalwithoutplanet)
+#     # maximum frame exposure time for analog
+#     maxANLGt_fr= 0.9*FWC_gr/(3*detEMgain*rate_totalwithoutplanet)
     
-    frameTime_ANLG = min(maxANLGt_fr,100)
+#     frameTime_ANLG = min(maxANLGt_fr,100)
     
-    # calculated frame exposure time for photon counting opt frame
-    maxPCt_fr = round(min(80, max(3, 0.1/rate_photoConverted)))
+#     # calculated frame exposure time for photon counting opt frame
+#     maxPCt_fr = round(min(80, max(3, 0.1/rate_photoConverted)))
     
-    if isPhotonCounting:    
-        frameTime = maxPCt_fr
-    else: # analog
-        frameTime = frameTime_ANLG
+#     if isPhotonCounting:    
+#         frameTime = maxPCt_fr
+#     else: # analog
+#         frameTime = frameTime_ANLG
     
-    return frameTime, frameTime_ANLG,maxANLGt_fr,maxPCt_fr, detEMgain
+#     return frameTime, frameTime_ANLG,maxANLGt_fr,maxPCt_fr, detEMgain
 
 def getDetectorCIC(DET_CBE_Data, detEMgain, missionFraction, frameTime):
     
@@ -554,26 +554,26 @@ def getENF(isPhotonCounting):
         ENF = math.sqrt(2) # 1.414
     return ENF
 
-def getReadNoiseandPCeffloss(detCamRead, detPCthreshold, isPhotonCounting, frameTime, detEMgain):
-    """Read noise"""
-    readNoise_w_gain = detCamRead/detEMgain # read noise with gain if analog
+# def getReadNoiseandPCeffloss(detCamRead, detPCthreshold, isPhotonCounting, frameTime, detEMgain):
+#     """Read noise"""
+#     readNoise_w_gain = detCamRead/detEMgain # read noise with gain if analog
    
-    if isPhotonCounting:
-        readNoise = 0 # Minimal read noise with photon counting
-    else:
-        readNoise = readNoise_w_gain # read noise with gain if analog
+#     if isPhotonCounting:
+#         readNoise = 0 # Minimal read noise with photon counting
+#     else:
+#         readNoise = readNoise_w_gain # read noise with gain if analog
     
-    readNoise_leakage = 0.5*math.erfc((detPCthreshold/math.sqrt(2)))
+#     readNoise_leakage = 0.5*math.erfc((detPCthreshold/math.sqrt(2)))
   
-    readNoise_leakage_in_current_units = readNoise_leakage/frameTime
+#     readNoise_leakage_in_current_units = readNoise_leakage/frameTime
     
-    if isPhotonCounting:
-        PCeffloss = 1 - math.exp( -detPCthreshold*detCamRead/detEMgain)
-    else:
-        PCeffloss = 0
+#     if isPhotonCounting:
+#         PCeffloss = 1 - math.exp( -detPCthreshold*detCamRead/detEMgain)
+#     else:
+#         PCeffloss = 0
    
-    return readNoise, readNoise_leakage, readNoise_leakage_in_current_units,\
-         PCeffloss, readNoise_w_gain
+#     return readNoise, readNoise_leakage, readNoise_leakage_in_current_units,\
+#          PCeffloss, readNoise_w_gain
 
 def getdetdQE(det_CTE, PCeffloss, hotPix, signalPerPixPerFrame, detPixAcross, CRtailLen, CRhitsPerFrame, det_QE):
     det_PC_threshold_efficiency = 1 - PCeffloss
