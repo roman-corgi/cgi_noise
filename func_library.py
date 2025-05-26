@@ -363,7 +363,7 @@ def getSpectra( target, lam, bandWidth):
     onlySpec = bandRange.drop(['Wavelength_m', 'E_ph_J'], axis=1)
         
     # Calculate scalar Ephot
-    Ephot = uc.h_planck * uc.c_light / (lam*uc.nm)
+    Ephot = uc.h_planck * uc.c_light / (lam)
     
     # Divide each element in each column by Ephot
     onlySpecEphot = onlySpec.apply(lambda x:x/Ephot, axis =1, result_type ='broadcast')
