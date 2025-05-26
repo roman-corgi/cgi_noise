@@ -114,7 +114,7 @@ sep_mas    = fl.Target.phaseAng_to_sep(planet_sma_AU, hostStar_dist, planet_phas
 print(f'Separation = {sep_mas:5.0f} mas')
 
 # Set Study Parameters
-SNRtarget  = 5.0 # desired signal to noise ratio
+SNRtarget  = 4.0 # desired signal to noise ratio
 allocTinteg = 100 # integration time in hours
 monthsAtL2 = 21  # months at L2
 isPhotonCounting = True 
@@ -268,7 +268,7 @@ thpt_bkgLimitedCore = thpt_t_core/ math.sqrt( thpt_coreArea_LamD )
 
 
 # Assign values from scenario file to local variables
-opMode = scenarioDF.at['OperatingMode','Latest']
+opMode = scenarioDF.at['OPMODE_IMG_SPEC','Latest']
 bandWidth = scenarioDF.at['BW','Latest']
 RefStarVmag_CBE = scenarioDF.at['RefStar_V_mag_CBE','Latest']
 RefStarDist = scenarioDF.at['RefStar_Distance_pc','Latest']
@@ -279,6 +279,9 @@ magExoZodi_1AU = scenarioDF.at['ExoZodi_magas2','Latest']
 k_pp_CBE = scenarioDF.at['pp_Factor_CBE','Latest']
 k_comp = 0
 FWC_gr = 90000
+
+
+
 
 
 # In[ ]:
@@ -334,8 +337,7 @@ det_CIC_in_DC_units, det_CIC_gain  = fl.getDetectorCIC(DET_CBE_Data, detEMgain, 
 CRhitsPerFrame,detPixAcross,detPixSize,CRrate,CRtailLen\
     = fl.getDetectorCosmicRays(perfLevel, DET_CBE_Data, detEMgain, frameTime )
 
-CTE_clocking_efficiency, CTE_traps, signalPerPixPerFrame\
-    = fl.getCTE(DET_CBE_Data, rate_photoConverted,frameTime,missionFraction)
+CTE_clocking_efficiency, CTE_traps, signalPerPixPerFrame = fl.getCTE(DET_CBE_Data, rate_photoConverted,frameTime,missionFraction)
 
 hotPixFrac, hotPix = fl.gethotPixels(DET_CBE_Data, missionFraction)
 
@@ -366,20 +368,19 @@ planetRate_proc, speckleRate_proc, zodiRate_proc,\
 Kappa = SNRtarget / (f_SR*starFlux*colArea*thpt_t_pnt*dQE\
                       *usableTinteg)/uc.ppb
 
-strayLight, strayLight_FRN, strayLight_ph_pix_s,\
-    strayLight_ph_pix_h, strayLight_e_pix_h =\
-        fl.getStrayLightFRN(scenario, perfLevel, STRAY_FRN_Data, CG_Data, IWA, OWA,\
-                 opMode, DET_CBE_Data, ENF, detPixSize, mpix, dQE, Kappa,\
-                      usableTinteg, hostStar_type, inBandFlux0_sum,\
-                          f_SR, CGintmpix, colArea, thpt_t_speckle)
+# strayLight, strayLight_FRN, strayLight_ph_pix_s,\
+#     strayLight_ph_pix_h, strayLight_e_pix_h =\
+#         fl.getStrayLightFRN(scenario, perfLevel, STRAY_FRN_Data, CG_Data, IWA, OWA,\
+#                  opMode, DET_CBE_Data, ENF, detPixSize, mpix, dQE, Kappa,\
+#                       usableTinteg, hostStar_type, inBandFlux0_sum,\
+#                           f_SR, CGintmpix, colArea, thpt_t_speckle)
 
-totNoiseVarRate, readNoiseRate, luminesRate, noiseVarRate_perSNRregion,\
-    CIC_RNLK_noiseRate, darkNoiseRate, zodi_shot, speckle_shot, planet_shot=\
+totNoiseVarRate, readNoiseRate, CIC_RNLK_noiseRate, darkNoiseRate, zodi_shot, speckle_shot, planet_shot=\
         fl.getNoiseVarianceRatesII(planetRate_proc, speckleRate_proc, zodiRate_proc,\
         ezo_bkgRate, lzo_bkgRate, residSpecRate, rate_planet_imgArea, ENF,\
             DarkCur_epoch_per_s, readNoise_leakage_in_current_units,\
             mpix, det_CIC_in_DC_units, readNoise, frameTime, isPhotonCounting,\
-                k_sp, k_lzo, k_ezo, k_det, dQE, strayLight_ph_pix_s)
+                k_sp, k_lzo, k_ezo, k_det, dQE)
 
 
 # ## Calculations for Specified Planet
@@ -390,8 +391,7 @@ usableTmini = 0.71 * 60 * 60
 # In[ ]:
 
 
-instaPlanetDF1 = fl.DRMinstaplanet(planetRate_proc, usableTinteg, totNoiseVarRate,\
-                             residSpecRate, SNRtarget)
+instaPlanetDF1 = fl.DRMinstaplanet(planetRate_proc, usableTinteg, totNoiseVarRate, residSpecRate, SNRtarget)
 timetoSNR = instaPlanetDF1.loc[0,'Value']
 print(f'Time to {SNRtarget} SNR = {timetoSNR:5.2f} hrs')
 round(instaPlanetDF1,2)

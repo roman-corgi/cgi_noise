@@ -222,25 +222,24 @@ def contrastStabilityPars( CSprefix, planetWA, CS_Data):
     fnSC  = CSprefix + "SystematicC"
     fnISRC = CSprefix + "InitStatContrast"
     
-    ExtContStab = CS_Data.df.at[indCS, fnECS] 
-    IntContStab = CS_Data.df.at[indCS, fnICS]
+    ExtContStab = CS_Data.df.at[indCS, fnECS] * uc.ppb
+    IntContStab = CS_Data.df.at[indCS, fnICS] * uc.ppb
     
-    rawContrast = CS_Data.df.at[indCS, fnARC] #same as average Raw contrast SelContrast in EB spreadsheet
-    initStatRawContrast = CS_Data.df.at[indCS, fnISRC] 
+    rawContrast = CS_Data.df.at[indCS, fnARC] * uc.ppb  #same as average Raw contrast SelContrast in EB spreadsheet
+    initStatRawContrast = CS_Data.df.at[indCS, fnISRC]  * uc.ppb
     
     selContrast = rawContrast
     
     if nCols == 16 and 'SystematicC' in headers[13]:
-        SystematicCont = CS_Data.df.at[indCS, fnSC]
-        selDeltaC = math.sqrt((ExtContStab**2) + (IntContStab**2) + (SystematicCont**2))*uc.ppb
+        SystematicCont = CS_Data.df.at[indCS, fnSC]  * uc.ppb
+        selDeltaC = math.sqrt((ExtContStab**2) + (IntContStab**2) + (SystematicCont**2)) 
     elif nCols == 13:
         SystematicCont = 0
-        selDeltaC = math.sqrt((ExtContStab**2) + (IntContStab**2))*uc.ppb
+        selDeltaC = math.sqrt((ExtContStab**2) + (IntContStab**2)) 
     else:
         raise IndexError('The contrast stability file referenced is not formatted as expected.')
 
-    return selDeltaC, selContrast, SystematicCont, initStatRawContrast,\
-        rawContrast, IntContStab, ExtContStab
+    return selDeltaC, selContrast, SystematicCont, initStatRawContrast, rawContrast, IntContStab, ExtContStab
 
 
 def getDarkCurrent(DET_CBE_Data, monthsatL2):
@@ -316,13 +315,7 @@ def getFocalPlaneAttributes(opMode, scenarioData, DET_CBE_Data, lam, bandWidth, 
     
     ## Get Focal Plane Attributes for Selected Operating Mode
     
-    if opMode == "HLC_NF_IMG":
-        f_SR = 1 
-        CritLam = FocalPlaneAtt.df.at[0,'Critical_Lambda_m']
-        mpix = omegaPSF * uc.arcsec**2 * (lam*uc.nm/CGdesignWL)**2*(2*DPM/CritLam)**2 
-        pixPlateSc = CritLam/DPM/2/uc.mas 
-        
-    elif opMode == "SPC_Amici_SPEC":   
+    if opMode == "SPEC":   
         try:
             resolution = scenarioData.at['R_required','Latest']
             print(f"resolution = {resolution}")
@@ -331,19 +324,19 @@ def getFocalPlaneAttributes(opMode, scenarioData, DET_CBE_Data, lam, bandWidth, 
             print("R_required is not specified in scenario-- set to default 0")
             resolution = 0.0001
             f_SR = -1 
-            
+    
+                
         CritLam = FocalPlaneAtt.df.at[1,'Critical_Lambda_m'] 
         mpix = mpix_Amici(AmiciPar, lam, DPM,detPixSize_m,resolution)
         pixPlateSc = CritLam/DPM/2/uc.mas 
-            
-    elif opMode == "SPC_WF_IMG":
-        f_SR = 1 
-        CritLam = FocalPlaneAtt.df.at[2,'Critical_Lambda_m']
-        mpix = omegaPSF*uc.arcsec**2*(lam*uc.nm/CGdesignWL)**2*(2*DPM/CritLam)**2 
-        pixPlateSc = CritLam/DPM/2/uc.mas
         
+    elif opMode == "IMG":
+        f_SR = 1 
+        CritLam = FocalPlaneAtt.df.at[0,'Critical_Lambda_m']
+        mpix = omegaPSF * uc.arcsec**2 * (lam/CGdesignWL)**2*(2*DPM/CritLam)**2 
+        pixPlateSc = CritLam/DPM/2/uc.mas 
     else:
-        raise Exception("Check Scenario Operating Mode in Scenario xlsx file and Operational Parameters readme")
+        raise Exception("getFocalPlaneAttributes:  Valid Operational Modes are IMG and SPEC")
     
     return f_SR, CritLam, detPixSize_m, mpix, pixPlateSc
           
@@ -452,11 +445,9 @@ def getNoiseRates(f_SR, starFlux, fluxRatio, colArea, thpt_t_pnt, thpt_tau_pk, t
         CGintmpix * colArea * thpt_t_speckle  * det_QE 
         
     # total rate pixel with planet
-    rate_photoConverted = DarkCur_epoch_per_s +\
-        (rate_planet_imgArea + rate_Zodi_imgArea + rate_speckleBkg )/mpix
+    rate_photoConverted = DarkCur_epoch_per_s +  (rate_planet_imgArea + rate_Zodi_imgArea + rate_speckleBkg )/mpix
     
-    rate_totalwithoutplanet =  DarkCur_epoch_per_s + (rate_Zodi_imgArea +\
-                                                      rate_speckleBkg )/mpix
+    rate_totalwithoutplanet =  DarkCur_epoch_per_s + (rate_Zodi_imgArea + rate_speckleBkg )/mpix
 
     return rate_planet_imgArea, rate_Zodi_imgArea, rate_exoZodi_incPht,\
         rate_loZodi_incPht, rate_speckleBkg, rate_photoConverted,\
@@ -610,15 +601,13 @@ def getNoiseVarianceRatesI( f_SR, starFlux, planetFlux, colArea, rawContrast, \
     """rates for time to SNR"""
     planetRate_proc = f_SR*planetFlux*colArea*thpt_t_pnt*dQE
 
-    speckleRate_proc = f_SR * starFlux * rawContrast * thpt_tau_pk\
-         * CGintmpix * thpt_t_speckle * colArea * dQE * uc.ppb
+    speckleRate_proc = f_SR * starFlux * rawContrast * thpt_tau_pk * CGintmpix * thpt_t_speckle * colArea * dQE * uc.ppb
     
     ezo_bkgRate = rate_exoZodi_incPht * dQE
     lzo_bkgRate = rate_loZodi_incPht * dQE
     zodiRate_proc = ezo_bkgRate + lzo_bkgRate
     
-    residSpecRate =  f_SR * starFlux * (selDeltaC/k_pp) *\
-         thpt_tau_pk * CGintmpix * thpt_t_speckle * colArea * dQE
+    residSpecRate =  f_SR * starFlux * (selDeltaC/k_pp) * thpt_tau_pk * CGintmpix * thpt_t_speckle * colArea * dQE
             
     return planetRate_proc, speckleRate_proc, zodiRate_proc,\
             ezo_bkgRate, lzo_bkgRate, residSpecRate
@@ -631,39 +620,7 @@ def getNoiseVarianceRatesI( f_SR, starFlux, planetFlux, colArea, rawContrast, \
     
 #     return usableTinteg
 
-def getStrayLightFRN(scenario, perfLevel, STRAY_FRN_Data, CG_Data, IWA, OWA,\
-                     opMode, DET_CBE_Data, ENF, detPixSize, mpix, dQE, Kappa,\
-                          usableTinteg, compStarSpecType, inBandFlux0_sum,\
-                              f_SR, CGintmpix, colArea, thpt_t_speckle):
-    try:
-        strayLight = getStrayLightfromfile(scenario, perfLevel, STRAY_FRN_Data)
-    except:
-        photonRateFlux,_ = getStrayLight_luminescenceBackground(perfLevel,opMode,\
-                                                              DET_CBE_Data,\
-                                                                  mpix, dQE, False)
-        
-        leakageRateSL, leakageRate, strayLightBackground\
-            = getStrayLight_companionStarBackground(compStarSpecType,\
-                                                              IWA, OWA, CG_Data,\
-                                          detPixSize, inBandFlux0_sum, f_SR,\
-                                              CGintmpix, usableTinteg, mpix,\
-                                              colArea, thpt_t_speckle, dQE, False)
-        
-        strayLight,_,_,_,_,_,_ = getStrayLightfromcalc(CG_Data, photonRateFlux,\
-                                                         leakageRateSL, IWA, OWA)
-    
-    # This is the flux ratio noise from stray light:
-    strayLight_FRN = Kappa * math.sqrt(ENF**2 * strayLight * 1000000 \
-                                   * detPixSize**2 * mpix * dQE * usableTinteg) 
 
-    strayLight_ph_pix_s = strayLight * 1000000 * detPixSize**2
-    
-    strayLight_ph_pix_h = strayLight_ph_pix_s * uc.hour
-    
-    strayLight_e_pix_h = strayLight_ph_pix_h * dQE
-    
-    return strayLight, strayLight_FRN, strayLight_ph_pix_s,\
-        strayLight_ph_pix_h, strayLight_e_pix_h
        
 def DRMinstaplanet(planetRate_proc,usableTinteg, totNoiseVarRate,\
                              residSpecRate, SNRtarget):
@@ -690,163 +647,6 @@ def DRMinstaplanet(planetRate_proc,usableTinteg, totNoiseVarRate,\
                           'Units':['hrs','sec','e-','e-','e-','SNR']})
     return instaPlanetDF
 
-def getStrayLightfromfile(scenario,perfLevel,STRAY_FRN_Data):
-    
-    # rowID = STRAY_FRN_Data.df.loc[STRAY_FRN_Data.df['PerfLevel']==perfLevel].index[0]
-    rowID = STRAY_FRN_Data.df.loc[STRAY_FRN_Data.df['PerfLevel']==perfLevel].index[0]
-    
-    try:
-        strayLight = STRAY_FRN_Data.df.at[rowID,scenario]
-    except:
-        scenario = scenario.replace('DRM','EB')
-        try:
-            strayLight = STRAY_FRN_Data.df.at[rowID,scenario] 
-        except:
-            raise Exception('Stray needs help')
-            strayLight = None
-    return strayLight
-
-def getStrayLight_luminescenceBackground(perfLevel,opMode,DET_CBE_Data,\
-                                         mpix, dQE, seeOutput):
-    filenamedir = current_dir
-    sp = Path(filenamedir, 'EBcsvData', 'Photometry','STRAY_Assumptions.csv')
-    MiscSTRAY = loadCSVrow(sp)
-
-    GCRfluxL2 = pd.to_numeric(MiscSTRAY.df.at[0,'GCRfluxatL2_evts_per_sq_cm_per_sec']) #5
-    photonsPerRelEvent = float(MiscSTRAY.df.at[0,'ph_per_rel_event_per_mm']) #250
-    diamCompBeam = float(MiscSTRAY.df.at[0,'diamCompBeam_mm'])
-    
-    if opMode == "HLC_NF_IMG":
-        luminOpticThickness = MiscSTRAY.df.at[0,'B1_LuminescOpticThickness_mm']
-    elif opMode == "SPC_Amici_SPEC":   
-        luminOpticThickness = MiscSTRAY.df.at[0,'B3_LuminescOpticThickness_mm']
-    elif opMode == "SPC_WF_IMG":
-        luminOpticThickness = MiscSTRAY.df.at[0,'B4_LuminescOpticThickness_mm']
-    else:
-        raise Exception("Check Scenario Operating Mode in Scenario csv file and Operational Parameters readme")
-    
-    luminOpticDistance = MiscSTRAY.df.at[0,'LuminescOpticDist_m'] #0.1
-    sBaffling = MiscSTRAY.df.at[0,'s_baffling_requirement'] #0.001
-    
-    lumRatePerAngle = photonsPerRelEvent/(2*math.pi)
-    luminOpticArea = (math.pi/4) * ((diamCompBeam/10)**2)
-    
-    detPixSize = DET_CBE_Data.df.at[0,'PixelSize_m']
-    detPixAcross = DET_CBE_Data.df.at[0,'PixelsAcross_pix']
-    
-    omegaSignal = mpix * detPixSize**2 / luminOpticDistance**2 
-    omegaIndirect = 2*math.pi * sBaffling * mpix/(detPixAcross**2)
-    
-    phRateDirect = GCRfluxL2 * lumRatePerAngle * luminOpticArea\
-        * luminOpticThickness * omegaSignal 
-        
-    phRateIndirect = GCRfluxL2 * lumRatePerAngle * luminOpticArea\
-        * luminOpticThickness * omegaIndirect 
-    
-    photonRate = phRateDirect + phRateIndirect 
-    photonRatePerPix = photonRate / mpix 
-    photonRateFlux = photonRatePerPix / detPixSize**2
-    
-    eRatePerSNR = photonRatePerPix * mpix * dQE
-    
-    if seeOutput:
-        print(f'GCR flux at L2 =                      {GCRfluxL2:.2e}  events/cm^2/s')
-        print(f'photons/relativistic event =          {photonsPerRelEvent:.2e}  ph/ev/mm/2piSr')
-        print(f'diameter of compressed beam =         {diamCompBeam:.2e}  mm')
-        print(f'luminesc. optic thickness =           {luminOpticThickness:.2e}  mm')
-        print(f'luminesc. optic distance =            {luminOpticDistance:.2e}  m')
-        print(f's_baffling (requirement) =            {sBaffling:.2e}')
-        print(f'lum rate per solid angle =            {lumRatePerAngle:.2e}  ph/Sr/evt/mm')
-        print(f'luminesc. optic area =                {luminOpticArea:.2e}  cm^2')
-        print(f'omega_signal =                        {omegaSignal:.2e}  Sr')
-        print(f'omega_indirect =                      {omegaIndirect:.2e}  Sr')
-        print(f'stray light ph rate - direct =        {phRateDirect:.2e}  ph/s')
-        print(f'stray light ph rate - indirect =      {phRateIndirect:.2e}  ph/s')
-        print(f'stray light photon rate =             {photonRate:.2e}  ph/s')
-        print(f'Luminscence Bkg phot rate per pix =   {photonRatePerPix:.2e}  ph/pix/s')
-        print(f' expressed as phot flux on detector = {photonRateFlux:.2e}  ph/mm^2/s')
-        
-    
-    return photonRateFlux,eRatePerSNR
-
-def getStrayLight_companionStarBackground(compStarSpecType, IWA, OWA, CG_Data,\
-                                          detPixSize, inBandFlux0_sum, f_SR,\
-                                              CGintmpix,usableTinteg, mpix, \
-                                              colArea, thpt_t_speckle, dQE,\
-                                                  seeOutput):
-    filenamedir = current_dir
-    sp = Path(filenamedir, 'EBcsvData', 'Photometry','STRAY_Assumptions.csv')
-    MiscSTRAY = loadCSVrow(sp)
-
-    darkHoleMidRadius = (IWA + OWA) / 2 
-    PSFpeakMidRadius = CG_Data.df.at[CG_Data.df[CG_Data.df['rlamD'] <= 6]['rlamD'].idxmax(),'PSFpeak'] 
-    
-    # companion star
-    compStarLeak = MiscSTRAY.df.at[0,'CompnStarLeakage']
-    compStarMag = MiscSTRAY.df.at[0,'CompnStarMag_mag']
-    
-    compStarIntegFlux = inBandFlux0_sum.at[compStarSpecType]
-    compStarFluxInBand = 10**(-0.4 * compStarMag) * compStarIntegFlux 
-
-    strayLightBackground = f_SR * compStarFluxInBand * compStarLeak * PSFpeakMidRadius\
-    * CGintmpix * colArea * thpt_t_speckle * dQE * usableTinteg
-    
-    leakageRate = (strayLightBackground / usableTinteg) / mpix
-    
-    leakageRateSL = leakageRate / detPixSize**2
-    
-    if seeOutput:
-        print('Companion Star Background')
-        print(f'Mid-Radius in the dark hole =      {darkHoleMidRadius} lam/D')
-        print(f"PSF peak at Mid-Radius =           {PSFpeakMidRadius} lam/D" )
-        print(f'Companion Star Leakage =           {compStarLeak}')
-        print(f'Companion Star Magnitude =         {compStarMag} mag')
-        print(f'Companion Star Spectral Type =     {compStarSpecType}')
-        print(f'Companion Star Integ Flux =        {compStarIntegFlux:.1e}')
-        print(f'Companion Star Flux In Band =      {compStarFluxInBand:.1e}')
-        
-    
-    return leakageRateSL, leakageRate, strayLightBackground
-
-def getStrayLightfromcalc(CG_Data, photonRateFlux, leakageRateSL, IWA, OWA):
-    # MUFs in the stray light calculation reflect uncertainties estimated in the scientific papers
-    filenamedir = current_dir #Path(os.getcwd()).parent.parent
-    thispath = Path(filenamedir, 'EBcsvData', 'Photometry','STRAY_MUF_table.csv')
-    MUFtSTRAY = loadCSVrow(thispath) 
-    
-    #Light Pollution Requirements in native units for various contributors with MUF
-    # Backup formulation of stray light FRN
-    #1)Cherenkov + Fluorescence + Phosph.: 
-    #(Cherenkov estimate only since it dominates. MUF also applied)
-    luminBackground = photonRateFlux * MUFtSTRAY.df.at[0,'MUF']/1000000
-    
-    #2)Astronomical Sources:
-    companionStar = leakageRateSL * MUFtSTRAY.df.at[1,'MUF']/1000000
-    
-    #3)Stray Light: (Indexed to the sum of the calculated numbers)
-    strayLightwMUF = MUFtSTRAY.df.at[2,'Indx']*(luminBackground + companionStar)
-    
-    #4)Payload Internal Sources (also indexed)
-    payloadInternal = MUFtSTRAY.df.at[3,'Indx']*(luminBackground + companionStar)
-    
-    #5)Rates Combined-- stray light reequirement
-    strayLight = luminBackground + companionStar \
-        + strayLightwMUF + payloadInternal
-    
-    #6)Internal Stray Light Sources: requirement
-    intslreq = MUFtSTRAY.df.at[0,'CGI']*luminBackground\
-        + MUFtSTRAY.df.at[1,'CGI']*companionStar \
-        + MUFtSTRAY.df.at[2,'CGI']*strayLightwMUF \
-        + MUFtSTRAY.df.at[3,'CGI']*payloadInternal
-    
-    #7)External Stray Light Sources: requirement
-    extslreq = MUFtSTRAY.df.at[0,'Ext']*luminBackground\
-        + MUFtSTRAY.df.at[1,'Ext']*companionStar\
-        + MUFtSTRAY.df.at[2,'Ext']*strayLightwMUF\
-        + MUFtSTRAY.df.at[3,'Ext']*payloadInternal
-    
-    return strayLight, luminBackground,companionStar,strayLightwMUF,\
-        payloadInternal, intslreq, extslreq
 
 def DRM_planetSens_Nsigma(residSpecRate, usableTinteg, ENF, k_sp, specRate_proc,\
                          k_lzo, lzo_bkgRate, k_ezo, ezo_bkgRate, k_det,\
@@ -993,154 +793,6 @@ def mpix_Amici(AmiciPar, lambda_nm, DPM, detPixSize_m, resolution):
 
     return mpix
     
-def DRMgetSNRvals(scenarioData, perfLevel, CSprefix, isPhotonCounting, target, detPCthreshold, compStarSpecType='m5v'):
-       
-    lam, SNRtarget, scenario, allocTinteg, intTimeDutyFactor_CBE,\
-        intTimeDutyFactor_REQ, k_pp_CBE, k_pp_REQ, monthsatL2, resolution,\
-            bandWidth, thpt_t_core_REQ, tau_core_REQ,\
-                opMode, fidPlnt, t_core_CBEmeas, K_c_CBEmeas \
-                     = unpackScenPars(scenarioData)
-    
-    magLocalZodi , magExoZodi_1AU, DarkCurrent_adjust, CIC_adjust, QE_adjust,\
-        SNR_for_NEFR, Channels_per_iter, Probes_per_Channel, Bandwidth_per_Channel,\
-            DarkHole_Contrast, ComparisonTime_sec, FWC_gr, ENF_for_Analog,\
-                DPM, thpt_t_PSFnominal, k_comp, timeOnRef,  RefStarSpecType,\
-                     RefStarVmag_CBE, RefStarDist, RefStarExoZodi, RefStarVmag_req\
-                         = unpackMiscPars()
-    
-    lamD = (lam*uc.nm)/DPM 
-    
-    sep_mas = Target.phaseAng_to_sep(target.sma_AU, target.dist_pc,\
-                                     target.phaseAng_deg)
-   
-    #=-----------------------------------------
-    # get list of specific csv files for selected mode
-    filenameList = getScenFileNames_DRM(scenarioData)
-    
-    # get the data tables of the mode-specific csv files
-    [CG_Data, QE_Data, DET_CBE_Data, STRAY_FRN_Data, THPT_Data, CAL_Data, CS_Data] \
-    = loadCSVs(filenameList)
-    
-    # calculate planet working angle from given target specifications
-    IWA, OWA = workingAnglePars(CG_Data, CS_Data)
-    planetWA = Target.separation_to_planetWA(sep_mas, lamD, IWA, OWA)
-    
-    # Constrast Stability for Mission CBE
-    selDeltaC, selContrast, SystematicCont, initStatRawContrast,\
-        rawContrast, IntContStab, ExtContStab\
-            = contrastStabilityPars( CSprefix, planetWA, CS_Data)
-    
-    det_QE = getQE(scenarioData, QE_Data)
-    detDarkBOM, detDarkEOM, DarkCur_epoch_per_s, DarkCur_epoch_per_hr,\
-        missionFraction, detEOL_mos\
-        = getDarkCurrent(DET_CBE_Data, DarkCurrent_adjust, monthsatL2)
-    
-       
-    CGtauPol, indWA, CGcoreThruput, PSFpeakI, omegaPSF, CGintSamp,\
-        CGradius_arcsec, CGdesignWL, CGintmpix, CG_PSFarea_sqlamD, CGintensity,\
-            CG_occulter_transmission, CGcontrast = \
-                coronagraph_pars(CG_Data, planetWA, IWA, DPM, lamD)
-                
-    thpt_t_obsc, colArea, thpt_OTA_TCA, thpt_CGI, thpt_bkgLimitedCore,\
-            thpt_coreArea_LamD, thpt_t_PSF, thpt_t_core,\
-                 tau_core_REQ, thpt_t_occ, thpt_t_pnt, thpt_t_pol,\
-                    thpt_t_refl, thpt_t_speckle, thpt_t_unif, thpt_tau_pk\
-                        = throughput_pars(perfLevel, THPT_Data, scenarioData,\
-                                          CG_occulter_transmission,\
-                    CGcoreThruput, PSFpeakI, CGtauPol, omegaPSF, \
-                        DPM, lamD)
-    
-    f_SR, CritLam, detPixSize_m, mpix, pixPlateSc =\
-        getFocalPlaneAttributes(opMode, scenarioData, DET_CBE_Data, lam, bandWidth,\
-                            DPM, CGdesignWL, omegaPSF)
-
-
-    inBandFlux0_sum, inBandZeroMagFlux, starFlux =\
-        getSpectra(target, lam, bandWidth)
-    
-    fluxRatio, planetFlux = getFluxRatio(target, starFlux)
-    
-    RefStarVmag, RefStarAbsMag, RefStarinBandZeroMagFlux, RefStarDeltaMag,\
-         RefStarFlux, BrightnessRatio, betaRDI, k_sp, k_det, k_lzo, k_ezo,\
-             v_sp, v_det, v_lzo, v_ezo =\
-                 getrefStarRDI(target, inBandFlux0_sum, starFlux,\
-                  RefStarSpecType, RefStarVmag_CBE,\
-                      RefStarDist, RefStarExoZodi, timeOnRef)
-    
-    ZodiFlux, exoZodiAngFlux, loZodiAngFlux, loZodiFlux, exoZodiFlux, absMag = \
-        getZodi(magLocalZodi, magExoZodi_1AU, target, inBandZeroMagFlux, omegaPSF)
-    
-    rate_planet_imgArea, rate_Zodi_imgArea, rate_exoZodi_incPht,\
-        rate_loZodi_incPht, rate_speckleBkg, rate_photoConverted,\
-            rate_totalwithoutplanet = \
-    getNoiseRates(f_SR, starFlux, fluxRatio, colArea, thpt_t_pnt, thpt_tau_pk,\
-                  thpt_t_speckle,\
-             det_QE, exoZodiFlux, loZodiFlux, thpt_t_unif, k_comp, rawContrast,\
-                 CGintmpix, mpix, DarkCur_epoch_per_s)
-    
-    frameTime, frameTime_ANLG,maxANLGt_fr,maxPCt_fr, detEMgain =\
-    getFrameExposureTime(DET_CBE_Data, FWC_gr, rate_totalwithoutplanet,\
-                         rate_photoConverted, isPhotonCounting)
-        
-    det_CIC_in_DC_units, det_CIC_at_epoch, det_CIC_gain =\
-    getDetectorCIC(DET_CBE_Data, CIC_adjust, detEMgain, missionFraction, frameTime)
-    
-    CRhitsPerFrame,detPixAcross,detPixSize,CRrate,CRtailLen\
-    = getDetectorCosmicRays(perfLevel,DET_CBE_Data, detEMgain, frameTime )
-    
-    CTE_clocking_efficiency, CTE_traps, signalPerPixPerFrame\
-    = getCTE(DET_CBE_Data, rate_photoConverted,frameTime,missionFraction)
-    
-    hotPixFrac, hotPix = gethotPixels(DET_CBE_Data, missionFraction)
-    
-    ENF = getENF(isPhotonCounting)
-    detCamRead = DET_CBE_Data.df.at[0,'ReadNoise_e']
-    
-    readNoise, readNoise_leakage, readNoise_leakage_in_current_units,\
-         PCeffloss, readNoise_w_gain\
-       = getReadNoiseandPCeffloss(detCamRead, detPCthreshold, isPhotonCounting, frameTime, detEMgain)
-    det_CTE = CTE_clocking_efficiency * CTE_traps
-    
-    signal_region_electron_rate, det_PC_threshold_efficiency,\
-        det_PC_coincid_effic, det_hotPix, det_cosmicRays, dQE\
-    = getdetdQE( det_CTE, PCeffloss, hotPix,\
-                signalPerPixPerFrame, detPixAcross, CRtailLen, CRhitsPerFrame,\
-                    QE_adjust, det_QE)
-       
-    
-    planetRate_proc, speckleRate_proc, zodiRate_proc,\
-                ezo_bkgRate, lzo_bkgRate, residSpecRate =\
-    getNoiseVarianceRatesI( f_SR, starFlux, planetFlux, colArea, rawContrast, \
-              thpt_t_pnt, thpt_t_speckle, thpt_tau_pk, CGintmpix, k_pp_CBE,\
-                     dQE, rate_exoZodi_incPht, rate_loZodi_incPht,\
-                         selDeltaC)
-    
-    intTimeDutyFactor, allocTinteg, usableTinteg = intTime(perfLevel,scenarioData)
-    Kappa = SNR_for_NEFR/(f_SR*starFlux*colArea*thpt_t_pnt*dQE\
-                          *usableTinteg)/uc.ppb
-    
-    strayLight, strayLight_FRN, strayLight_ph_pix_s,\
-        strayLight_ph_pix_h, strayLight_e_pix_h =\
-            getStrayLightFRN(scenario, perfLevel, STRAY_FRN_Data, CG_Data, IWA, OWA,\
-                     opMode, DET_CBE_Data, ENF, detPixSize, mpix, dQE, Kappa,\
-                          usableTinteg, compStarSpecType, inBandFlux0_sum,\
-                              f_SR, CGintmpix, colArea, thpt_t_speckle)
-
-    totNoiseVarRate, readNoiseRate, luminesRate, noiseVarRate_perSNRregion,\
-        CIC_RNLK_noiseRate, darkNoiseRate, zodi_shot, speckle_shot, planet_shot=\
-            getNoiseVarianceRatesII(planetRate_proc, speckleRate_proc, zodiRate_proc,\
-            ezo_bkgRate, lzo_bkgRate, residSpecRate, rate_planet_imgArea, ENF,\
-                DarkCur_epoch_per_s, readNoise_leakage_in_current_units,\
-                mpix, det_CIC_in_DC_units, readNoise, frameTime, isPhotonCounting,\
-                    k_sp, k_lzo, k_ezo, k_det, dQE, strayLight_ph_pix_s)
-                
-
-    return planetRate_proc,usableTinteg, totNoiseVarRate, residSpecRate,\
-        SNRtarget, ENF, k_sp, k_det, k_lzo, k_ezo, ezo_bkgRate, lzo_bkgRate,\
-            speckleRate_proc, zodiRate_proc, Kappa, f_SR, starFlux, colArea, \
-            darkNoiseRate,CIC_RNLK_noiseRate, readNoiseRate, thpt_t_pnt, dQE,\
-                planetWA, lamD, IWA, OWA, CG_Data, thpt_t_refl,\
-                    inBandZeroMagFlux,omegaPSF,allocTinteg, k_pp_CBE
 
 def DRM_tableofNsigma(N_sigmaSens, infiniteTimeSens, planetWA, lamD):
     """Converts planet FRN sensitity values into ppb for the table of 
@@ -1165,7 +817,7 @@ def getNoiseVarianceRatesII(planetRate_proc, speckleRate_proc, zodiRate_proc,\
             ezo_bkgRate, lzo_bkgRate, residSpecRate, rate_planet_imgArea, ENF,\
                 DarkCur_epoch_per_s, readNoise_leakage_in_current_units,\
                 mpix, det_CIC_in_DC_units, readNoise, frameTime, isPhotonCounting,\
-                    k_sp, k_lzo, k_ezo, k_det, dQE, strayLight_ph_pix_s):    
+                    k_sp, k_lzo, k_ezo, k_det, dQE):    
     
     planet_shot = planetRate_proc * ENF**2
     speckle_shot = speckleRate_proc * ENF**2
@@ -1178,10 +830,6 @@ def getNoiseVarianceRatesII(planetRate_proc, speckleRate_proc, zodiRate_proc,\
                                           readNoise_leakage_in_current_units)
     else:
         CIC_RNLK_noiseRate = ENF**2*mpix*(det_CIC_in_DC_units)
-        
-        
-    noiseVarRate_perSNRregion = strayLight_ph_pix_s * mpix * dQE    
-    luminesRate = noiseVarRate_perSNRregion * ENF**2
     
     readNoiseRate = (mpix/frameTime) * readNoise**2   
     
@@ -1189,11 +837,10 @@ def getNoiseVarianceRatesII(planetRate_proc, speckleRate_proc, zodiRate_proc,\
                               k_sp * speckleRate_proc +\
                               k_lzo * lzo_bkgRate +\
                               k_ezo * ezo_bkgRate ) +\
-                        k_det * (darkNoiseRate + CIC_RNLK_noiseRate + luminesRate) +\
+                        k_det * (darkNoiseRate + CIC_RNLK_noiseRate) +\
                         k_det * readNoiseRate
     
-    return totNoiseVarRate, readNoiseRate, luminesRate, noiseVarRate_perSNRregion,\
-        CIC_RNLK_noiseRate, darkNoiseRate, zodi_shot, speckle_shot, planet_shot
+    return totNoiseVarRate, readNoiseRate, CIC_RNLK_noiseRate, darkNoiseRate, zodi_shot, speckle_shot, planet_shot
 
 def throughput_pars(perfLevel, THPT_Data, scenarioData, CG_occulter_transmission,\
                     CGcoreThruput, PSFpeakI, CGtauPol, omegaPSF, DPM, lamD):
