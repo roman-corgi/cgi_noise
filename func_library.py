@@ -486,7 +486,7 @@ def getFrameExposureTime(DET_CBE_Data, FWC_gr, rate_totalwithoutplanet,\
     
     return frameTime, frameTime_ANLG,maxANLGt_fr,maxPCt_fr, detEMgain
 
-def getDetectorCIC(DET_CBE_Data, CIC_adjust, detEMgain, missionFraction, frameTime):
+def getDetectorCIC(DET_CBE_Data, detEMgain, missionFraction, frameTime):
     
     # ## Instrument Parameters
     # # Detector
@@ -500,10 +500,10 @@ def getDetectorCIC(DET_CBE_Data, CIC_adjust, detEMgain, missionFraction, frameTi
     det_CIC_gain = ((detCIC2 - detCIC1)/(detCICgain2 - detCICgain1))*detEMgain\
         +(detCIC1-((detCIC2 - detCIC1)/(detCICgain2 - detCICgain1))*detCICgain1)\
             *(1 + missionFraction*(detCICdegradationEOM-1))
-    det_CIC_at_epoch = CIC_adjust*det_CIC_gain
-    det_CIC_in_DC_units = det_CIC_at_epoch/frameTime
 
-    return det_CIC_in_DC_units, det_CIC_at_epoch, det_CIC_gain
+    det_CIC_in_DC_units = det_CIC_gain/frameTime
+
+    return det_CIC_in_DC_units,  det_CIC_gain
 
 def getDetectorCosmicRays(perfLevel,DET_CBE_Data, detEMgain, frameTime ):
     
@@ -583,9 +583,7 @@ def getReadNoiseandPCeffloss(detCamRead, detPCthreshold, isPhotonCounting, frame
     return readNoise, readNoise_leakage, readNoise_leakage_in_current_units,\
          PCeffloss, readNoise_w_gain
 
-def getdetdQE(det_CTE, PCeffloss, hotPix,\
-                signalPerPixPerFrame, detPixAcross, CRtailLen, CRhitsPerFrame,\
-                    QE_adjust, det_QE):
+def getdetdQE(det_CTE, PCeffloss, hotPix, signalPerPixPerFrame, detPixAcross, CRtailLen, CRhitsPerFrame, det_QE):
     det_PC_threshold_efficiency = 1 - PCeffloss
    
     signal_region_electron_rate = signalPerPixPerFrame * det_CTE
@@ -600,7 +598,7 @@ def getdetdQE(det_CTE, PCeffloss, hotPix,\
     det_cosmicRays = 1 - CRhitsPerFrame * CRtailLen/(detPixAcross**2)
     
     estimated_dQE_CBE = det_QE * det_CTE * det_PC_threshold_efficiency * \
-            det_PC_coincid_effic * det_hotPix * det_cosmicRays * QE_adjust
+            det_PC_coincid_effic * det_hotPix * det_cosmicRays
     
     return signal_region_electron_rate, det_PC_threshold_efficiency,\
         det_PC_coincid_effic, det_hotPix, det_cosmicRays, estimated_dQE_CBE 
@@ -625,16 +623,13 @@ def getNoiseVarianceRatesI( f_SR, starFlux, planetFlux, colArea, rawContrast, \
     return planetRate_proc, speckleRate_proc, zodiRate_proc,\
             ezo_bkgRate, lzo_bkgRate, residSpecRate
 
-def intTime(perfLevel,scenarioData):
-    if perfLevel == "CBE":    
-        intTimeDutyFactor = scenarioData.at['DutyFactor_CBE','Latest']
-    else:
-        intTimeDutyFactor = scenarioData.at['DutyFactor_REQ','Latest']
-
-    allocTinteg = scenarioData.at['t_max_hrs','Latest']
-    usableTinteg = allocTinteg * intTimeDutyFactor*uc.hour
+# def intTime(dutyFactor, allocTinteg):
+#     # return the available actual integration time, given a duty factor and the total allocated integration time for the observation
+#     # the duty factor accounts for the fraction of the time the reaction wheel jitter meets requirements
+ 
+#     usableTinteg =  dutyFactor * allocTinteg * uc.hour
     
-    return intTimeDutyFactor, allocTinteg, usableTinteg
+#     return usableTinteg
 
 def getStrayLightFRN(scenario, perfLevel, STRAY_FRN_Data, CG_Data, IWA, OWA,\
                      opMode, DET_CBE_Data, ENF, detPixSize, mpix, dQE, Kappa,\

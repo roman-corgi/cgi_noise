@@ -69,34 +69,6 @@ for key in SCEN_Dict.keys():
 
 # ### Scenario Parameters
 
-
-# ### Scenario Parameters
-
-# In[5]:
-
-
-#-------------------------------------------------------
-# SET THE SCENARIO PARAMETERS
-#-------------------------------------------------------
-# Set Study Parameters
-SNRtarget  = 5.0 # desired signal to noise ratio
-maxTinteg  = 100 # integration time in hours
-pp_factor  = 2   # k_pp, post-processing factor
-monthsAtL2 = 21  # months at L2
-
-perfLevel = 'CBE'
-
-# Contrast Stability options (choose 'MCBE_'):
-CSprefix = 'MCBE_' # 'ICBE_'(instrument CBE), 'MCBE_'(mission CBE)
-CBEtype = "mission", # "instrument", "mission"
-
-# Detector Options (boolean):
-isPhotonCounting = True 
-
-# # Set Study Parameter values as authoritative
-# keepConsistent = 1 # 0 to redefine Study Parameters for each study case
-
-
 # In[6]:
 
 
@@ -108,15 +80,11 @@ scenarioDF = loadXLcol(scenFolder[scenario_filename],30).df
 scenario = scenarioDF.at['Scenario','Latest']
 scenarioDF
 
-
 # In[7]:
 
 
 lam = scenarioDF.at['CenterLambda_nm','Latest'] * uc.nm
 print(lam)
-
-
-# In[8]:
 
 
 lamD = lam / DPM
@@ -125,13 +93,13 @@ print(f'Lambda/D = {lamD:5.3e} rad')
 print(f'Lambda/D = {lamD/uc.mas:5.3f} mas')
 
 
-# ### Host Star & Planet Specs
+# In[5]:
 
-# In[9]:
-
+#-------------------------------------------------------
+# SET THE SCENARIO PARAMETERS
+#-------------------------------------------------------
 
 # User set host star and planet specifications
-
 hostStar_vmag = 5.05
 hostStar_dist = 13.8 # parsec
 hostStar_type = 'g0v'
@@ -140,14 +108,30 @@ planet_phaseAngle = 65   # degrees
 planet_sma_AU     = 4    # AU
 planet_radius     = 1 # R_Jupiter
 planet_GeomAlbedo = 0.3
+exoZodi = 1  # X solar Zodi
 
 sep_mas    = fl.Target.phaseAng_to_sep(planet_sma_AU, hostStar_dist, planet_phaseAngle)
-
 print(f'Separation = {sep_mas:5.0f} mas')
 
-exoZodi = 1
-
+# Set Study Parameters
+SNRtarget  = 5.0 # desired signal to noise ratio
+allocTinteg = 100 # integration time in hours
+monthsAtL2 = 21  # months at L2
+isPhotonCounting = True 
 detPCthreshold = 5.0
+
+pp_factor  = 2   # k_pp, post-processing factor
+
+perfLevel = 'CBE'
+# Contrast Stability options (choose 'MCBE_'):
+CSprefix = 'MCBE_' # 'ICBE_'(instrument CBE), 'MCBE_'(mission CBE)
+CBEtype = "mission", # "instrument", "mission"
+
+
+intTimeDutyFactor = scenarioDF.at['DutyFactor_CBE','Latest']
+ 
+# Integration Time in seconds
+usableTinteg = allocTinteg * intTimeDutyFactor * uc.hour
 
 
 # In[10]:
@@ -292,6 +276,7 @@ RefStarExoZodi = scenarioDF.at['RefStar_ExoZodi_Xsolar','Latest']
 timeOnRef = scenarioDF.at['TimeonRefStar_tRef_per_tTar','Latest']
 magLocalZodi = scenarioDF.at['LocZodi_magas2','Latest']
 magExoZodi_1AU = scenarioDF.at['ExoZodi_magas2','Latest']
+k_pp_CBE = scenarioDF.at['pp_Factor_CBE','Latest']
 k_comp = 0
 FWC_gr = 90000
 
@@ -345,8 +330,7 @@ frameTime, frameTime_ANLG,maxANLGt_fr,maxPCt_fr, detEMgain\
 # In[18]:
 
 
-det_CIC_in_DC_units, det_CIC_at_epoch, det_CIC_gain\
-    = fl.getDetectorCIC(DET_CBE_Data, CIC_adjust, detEMgain, missionFraction, frameTime)
+det_CIC_in_DC_units, det_CIC_gain  = fl.getDetectorCIC(DET_CBE_Data, detEMgain, missionFraction, frameTime)
 
 CRhitsPerFrame,detPixAcross,detPixSize,CRrate,CRtailLen\
     = fl.getDetectorCosmicRays(perfLevel, DET_CBE_Data, detEMgain, frameTime )
@@ -367,8 +351,7 @@ det_CTE = CTE_clocking_efficiency * CTE_traps
 signal_region_electron_rate, det_PC_threshold_efficiency,\
     det_PC_coincid_effic, det_hotPix, det_cosmicRays, dQE\
     = fl.getdetdQE( det_CTE, PCeffloss, hotPix,\
-            signalPerPixPerFrame, detPixAcross, CRtailLen, CRhitsPerFrame,\
-                QE_adjust, det_QE)
+            signalPerPixPerFrame, detPixAcross, CRtailLen, CRhitsPerFrame, det_QE)
 
 planetRate_proc, speckleRate_proc, zodiRate_proc,\
             ezo_bkgRate, lzo_bkgRate, residSpecRate\
@@ -381,9 +364,7 @@ planetRate_proc, speckleRate_proc, zodiRate_proc,\
 # In[ ]:
 
 
-intTimeDutyFactor, allocTinteg, usableTinteg = fl.intTime(perfLevel,scenarioDF)   
-
-Kappa = SNR_for_NEFR/(f_SR*starFlux*colArea*thpt_t_pnt*dQE\
+Kappa = SNRtarget / (f_SR*starFlux*colArea*thpt_t_pnt*dQE\
                       *usableTinteg)/uc.ppb
 
 strayLight, strayLight_FRN, strayLight_ph_pix_s,\
