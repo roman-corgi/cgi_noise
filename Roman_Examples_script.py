@@ -77,7 +77,7 @@ scenarioDF
 # Primary Mirror Diameter for Roman
 DPM = 2.363 * uc.meter
 
-lam = scenarioDF.at['CenterLambda_nm','Latest']
+lam = scenarioDF.at['CenterLambda_nm','Latest'] * uc.nm
 print(f"lam = {lam / uc.nm} nm")
 
 
@@ -218,7 +218,7 @@ selDeltaC, selContrast, SystematicCont, initStatRawContrast,\
     rawContrast, IntContStab, ExtContStab\
         = fl.contrastStabilityPars( CSprefix, planetWA, CS_Data)
 
-indQE = QE_Data.df.loc[QE_Data.df['lambda_nm']<=(lam*uc.nm),'lambda_nm'].idxmax()
+indQE = QE_Data.df.loc[QE_Data.df['lambda_nm']<=(lam/uc.nm),'lambda_nm'].idxmax()
 det_QE  = QE_Data.df.at[indQE,'QE_at_neg100degC']
 
 
