@@ -50,7 +50,7 @@ current_datetime = datetime.now()
 
 # Scenario specification is done via an excel "scenario file"
 
-scenario_filename = 'SCEN_IMG_NFOV_B2_SPC.xlsx' #'SCEN_DRM_IMG_WF_B4.xlsx' # 'SCEN_DRM_SP_B2_TVAC.xlsx' # 'SCEN_DRM_IMG_WF_B3_TVAC.xlsx' # 'SCEN_DRM_IMG_NF_B1_HLC.xlsx' # 
+scenario_filename = 'SCEN_IMG_NFOV_B1_HLC.xlsx' #  'SCEN_IMG_NFOV_B2_SPC.xlsx' #'SCEN_DRM_IMG_WF_B4.xlsx' # 'SCEN_DRM_SP_B2_TVAC.xlsx' # 'SCEN_DRM_IMG_WF_B3_TVAC.xlsx' #
 
 print('Select a scenario from the list of available options.')
 SCEN_Dict = fl.open_folder('EBcsvData','Scenarios')
@@ -99,7 +99,7 @@ hostStar_dist = 13.8 # parsec
 hostStar_type = 'g0v'
 
 planet_phaseAngle = 65   # degrees
-planet_sma_AU     = 4    # AU
+planet_sma_AU     = 5    # AU
 planet_radius     = 1 # R_Jupiter
 planet_GeomAlbedo = 0.3
 exoZodi = 1  # X solar Zodi
@@ -108,7 +108,7 @@ sep_mas    = fl.Target.phaseAng_to_sep(planet_sma_AU, hostStar_dist, planet_phas
 print(f'Separation = {sep_mas:5.0f} mas')
 
 # Set Study Parameters
-SNRtarget  = 4.0 # desired signal to noise ratio
+SNRtarget  = 5.0 # desired signal to noise ratio
 allocTinteg = 100 # integration time in hours
 monthsAtL2 = 21  # months at L2
 isPhotonCounting = True 
@@ -133,7 +133,7 @@ usableTinteg = allocTinteg * intTimeDutyFactor * uc.hour
 
 # Assign core throughput values from file to local variables
 thpt_t_pnt = scenarioDF.at['t_core_CBEmeas','Latest']
-print(thpt_t_pnt)
+print(f"Core throughput: {thpt_t_pnt}")
 RefStarSpecType = scenarioDF.at['RefStar_SpectralType','Latest']
 print(RefStarSpecType)
 
