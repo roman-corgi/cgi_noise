@@ -1,218 +1,53 @@
-# Library of Functions Used in Various Jupyter Notebooks for CGI Perf
-import os
-import sys
-import pandas as pd
-import math
-current_dir = os.getcwd()
-from loadCSVrow import loadCSVrow
-from loadXLcol import loadXLcol
+from dataclasses import dataclass
 from pathlib import Path
-from datetime import datetime as dt
-import xlwings as xw
+import os
 import unitsConstants as uc
-import numpy as np
+import math
+import pandas as pd
+from loadCSVrow import loadCSVrow
+
 
 def open_folder(*folders):
-    filenamedir = current_dir
+    """Opens a directory and returns a dictionary of file paths keyed by filenames."""
+    filenamedir = Path(os.getcwd())
     folder = Path(filenamedir, *folders)
-    filesDict = {}
-    
-    for file in folder.iterdir():
-        filesDict[file.name]=(file)    
-    return filesDict
-
-#------------------------------------------------------------------------------
-class Target:
-    """Takes in these parameters v_mag, dist_pc, exoZodi_xsolar, specType,
-    Calculates these parameters
-    why to give:
-    optional parameters:
-    name
-    phase angle 
-    used in Ref Star, """
-    
-    def __init__(self, v_mag = None, phaseAng_deg = None, geomAlb_ag = None,\
-                           radius_Rjup = None, dist_pc = None, exoZodi = None,\
-                              specType = None, sma_AU = None, albedo = None,\
-                                  eeid_mas = None):
-        
-        self.v_mag = v_mag
-        self.phaseAng_deg = phaseAng_deg
-        self.geomAlb_ag = geomAlb_ag
-        self.radius_Rjup = radius_Rjup
-        self.dist_pc = dist_pc
-        self.exoZodi = exoZodi
-        self.specType = specType 
-        self.sma_AU = sma_AU
-        self.albedo = albedo
-        self.eeid_mas = eeid_mas
-        
-    @staticmethod   
-    def albedo_for_planetSensitivity(geomAlb_ag, phaseAng_deg):
-        """ Calculate albedo from geometric albedo and phase function"""
-        phaseAng_rad = math.radians(phaseAng_deg)  
-        phaseFunction = (1/math.pi)*(math.sin(phaseAng_rad) +\
-                                                   (math.pi-phaseAng_rad)*\
-                                                       math.cos(phaseAng_rad))
-        albedo = geomAlb_ag*phaseFunction
-        
-        return albedo
-   
-    @staticmethod
-    def fluxRatio_alb_sma_to_Radius(fluxRatio,albedo,sma_AU):
-        """Calculate the radius of the planet from the SMA, 
-        flux ratio, and albedo"""
-        
-        radius_Rjup = sma_AU*uc.AU*(math.sqrt(fluxRatio/albedo))/uc.jupiterRadius
-        
-        return radius_Rjup
-
-    @staticmethod    
-    def alb_rad_sma_to_fluxRatio(albedo,radius_Rjup,sma_AU):
-        """Calculate fluxRatio from planet albedo, planet radius (uc.jupiterRadius) and 
-            class attribute, semimajor axis (sma_AU).
-            planetFluxRatio on SNR page"""
-        
-        fluxRatio = albedo * (radius_Rjup * uc.jupiterRadius / (sma_AU * uc.AU) )**2
-        
-        return fluxRatio
-
-
-    @staticmethod    
-    def planetWAtoSMA(planetWA, lamD, dist_pc, phaseAng_deg):
-        """Calculate planet SMA from planet WA"""
-
-        sma_AU = planetWA * lamD * dist_pc*(uc.pc/uc.AU)/\
-            math.sin(math.radians(phaseAng_deg))
-            
-        return sma_AU
-    
-    @staticmethod            
-    def planetWAtoSeparation(planetWA, lamD):
-        """Calculate angular separation in milliarcseconds from 
-        planet working angle in lambda/D"""
-        sep_mas = planetWA * lamD / uc.mas
-        
-        return sep_mas
-    
-    @staticmethod
-    def sep_and_dist_to_SMA(sep_mas,dist_pc,phaseAng_deg):
-        """Calculate semi-major axis of elliptical orbit (SMA) in AU 
-        from the angular separation in milliarcseconds, distance to target in 
-        seconds of parallax, and phase angle in degrees"""
-        
-        sma_AU = float((dist_pc * uc.pc * sep_mas * uc.mas))/\
-                     (math.sin(math.radians(phaseAng_deg)))/uc.AU
-        return sma_AU
-                        
-
-    @staticmethod
-    def fluxRatio_to_deltaMag(fluxRatio):        
-        """Calculate delta Mag from flux ratio"""
-        deltaMag = (-2.5)*math.log10(fluxRatio)
-        return deltaMag
-    
-    @staticmethod
-    def deltaMag_to_fluxRatio(deltaMag):
-        """Calculate flux ratio from given delta mag"""
-        fluxRatio = 10**((-0.4)*deltaMag)
-        return fluxRatio
-    
-    @staticmethod    
-    def fluxRatio_SMA_rad_to_albedo(fluxRatio,sma_AU,radius_Rjup):
-        """Calculate albedo from radius, flux ratio, and SMA"""
-        albedo = fluxRatio *(sma_AU*uc.AU/(radius_Rjup*uc.jupiterRadius))**2
-        return albedo
-        
-    @staticmethod    
-    def separation_to_planetWA(sep_mas, lamD, IWA, OWA):
-        """Calculate planet working angle from separation in milliarcseconds"""
-        planetWA = sep_mas*uc.mas / lamD
-        tolerance = .05
-        
-        if (IWA - tolerance) <= planetWA <= IWA:
-            planetWA = IWA
-        elif OWA <= planetWA <= (OWA + tolerance):
-            planetWA = OWA
-        elif planetWA < (IWA - tolerance) or planetWA > (OWA + tolerance):
-            raise ValueError(f" Planet WA={planetWA:.1f} while IWA = {IWA:.1f} and OWA = {OWA:.1f} lam/D.")
-                
-        return planetWA
-        
-
-    @staticmethod    
-    def phaseAng_to_sep(sma_AU, dist_pc, phaseAng_deg):
-        """Calculate separation(mas) from planet phase angle(deg),
-            and class attribute dist_pc (distance in parsecs) 
-            and class attribute sma_AU (semimajor axis in AU)"""
-              
-        sep_mas = ((sma_AU * uc.AU * math.sin\
-                         (math.radians(phaseAng_deg)))\
-                        /(dist_pc * uc.pc))/uc.mas
-        return sep_mas
-   
-    
-    @staticmethod
-    def deltaMag_from_known_planet_location(dist_pc, phaseAng_deg, sep_mas,\
-                                            geomAlb_ag, radius_Rjup):
-        """Calculate delta mag from planet phase angle (deg),
-        geometric albedo (ag), and planet radius (uc.jupiterRadius)   
-        assuming the insta-planet's location
-        Use this to know what delta-mag to plug into the
-        time-to-SNR calculator. It provides a way to calculate
-        delta mag given the other parameters."""
-        
-        phAng_rad = math.radians(phaseAng_deg)
-        phasefunction = (1/math.pi)*(math.sin(phAng_rad)+(math.pi-phAng_rad)*math.cos(phAng_rad))
-        sma_AU = dist_pc*uc.pc*sep_mas*uc.mas/math.sin(phAng_rad)/uc.AU
-        
-        #calculate flux ratio assuming lambertian scatter
-        fluxRatio_lambertian = geomAlb_ag * phasefunction * (radius_Rjup*uc.jupiterRadius/(sma_AU*uc.AU))**2
-        deltaMag = (-2.5)*math.log10(fluxRatio_lambertian)
-        
-        return deltaMag
-      
-#-----------------  END OF TARGET CLASS  --------------------------------------
-#------------------------------------------------------------------------------
-
+    return {file.name: file for file in folder.iterdir() if file.is_file()}
 
 
 def getScenFileNames_DRM(scenarioData):
-    filenamedir = current_dir #Path(os.getcwd()).parent.parent
-    filenameList= []
-    ffList = [("Photometry", "CoronagraphFile"),('Photometry','QE_Curve_file'),\
-                      ('Photometry','DetModelFile_CBE'),('Photometry','StrayLightFRNfile'),\
-                      ('Photometry','ThroughputFile'),('Calibration','CalibrationFile'),\
-                       ('Cstability','ContrastStabilityFile')]
-    for item in ffList:
-        filename = os.path.abspath(os.path.join(filenamedir,"EBcsvData",item[0],\
-                                scenarioData.loc[item[1],'Latest']+".csv"))        
-        filenameList.append(filename)        
-    
+    filenamedir = Path(os.getcwd())
+    filenameList = []
+    ffList = [
+        ("Photometry", "CoronagraphFile"),
+        ('Photometry', 'QE_Curve_file'),
+        ('Photometry', 'DetModelFile_CBE'),
+        ('Photometry', 'StrayLightFRNfile'),
+        ('Photometry', 'ThroughputFile'),
+        ('Calibration', 'CalibrationFile'),
+        ('Cstability', 'ContrastStabilityFile')
+    ]
+    for folder, key in ffList:
+        name = scenarioData.loc[key, 'Latest'] + ".csv"
+        path = filenamedir / "EBcsvData" / folder / name
+        filenameList.append(str(path))
     return filenameList
 
 
 def loadCSVs(filenameList):
-    loadedFiles = []
-    for filename in filenameList:
-        loadedFiles += [loadCSVrow(filename)]
-    return loadedFiles
+    return [loadCSVrow(f) for f in filenameList]
+
 
 def workingAnglePars(CG_Data, CS_Data):
-    
-    IWAc = CG_Data.df.at[0,'rlamD']
-    IWAs = CS_Data.df.at[0,'r_lam_D']
-    OWAc = CG_Data.df['rlamD'].iloc[-1] # idx of last data row is just before first comment row
-    OWAs = CS_Data.df['r_lam_D'].iloc[-1] # idx of last data row is just before first comment row
+    IWAc = CG_Data.df.at[0, 'rlamD']
+    IWAs = CS_Data.df.at[0, 'r_lam_D']
+    OWAc = CG_Data.df['rlamD'].iloc[-1]
+    OWAs = CS_Data.df['r_lam_D'].iloc[-1]
+    return max(IWAs, IWAc), min(OWAs, OWAc)
 
-    return max(IWAs, IWAc) , min(OWAs, OWAc) 
 
-def contrastStabilityPars( CSprefix, planetWA, CS_Data):
-    """Constrast Stability"""
-
-    # pick an index into the C-Stability Dataframe, and pin to nearest working angle available if outside range  
-    tol = .05
-    indCS = np.searchsorted(CS_Data.df['r_lam_D'], planetWA + tol) - 1
+def contrastStabilityPars(CSprefix, planetWA, CS_Data):
+    tol = 0.05
+    indCS = CS_Data.df['r_lam_D'].searchsorted(planetWA + tol) - 1
 
     headers = CS_Data.df.columns.tolist()
     nCols = len(headers)
@@ -221,380 +56,206 @@ def contrastStabilityPars( CSprefix, planetWA, CS_Data):
     fnICS = CSprefix + "IntContStab"
     fnSC  = CSprefix + "SystematicC"
     fnISRC = CSprefix + "InitStatContrast"
-    
+
     ExtContStab = CS_Data.df.at[indCS, fnECS] * uc.ppb
     IntContStab = CS_Data.df.at[indCS, fnICS] * uc.ppb
-    
-    rawContrast = CS_Data.df.at[indCS, fnARC]  #same as average Raw contrast SelContrast in EB spreadsheet
-    initStatRawContrast = CS_Data.df.at[indCS, fnISRC]  * uc.ppb
-    
-    selContrast = rawContrast
-    
+    rawContrast = CS_Data.df.at[indCS, fnARC] * uc.ppb
+    initStatRawContrast = CS_Data.df.at[indCS, fnISRC] * uc.ppb
+
     if nCols == 16 and 'SystematicC' in headers[13]:
-        SystematicCont = CS_Data.df.at[indCS, fnSC]  * uc.ppb
-        selDeltaC = math.sqrt((ExtContStab**2) + (IntContStab**2) + (SystematicCont**2)) 
+        SystematicCont = CS_Data.df.at[indCS, fnSC] * uc.ppb
+        selDeltaC = math.sqrt((ExtContStab**2) + (IntContStab**2) + (SystematicCont**2))
     elif nCols == 13:
         SystematicCont = 0
-        selDeltaC = math.sqrt((ExtContStab**2) + (IntContStab**2)) 
+        selDeltaC = math.sqrt((ExtContStab**2) + (IntContStab**2))
     else:
         raise IndexError('The contrast stability file referenced is not formatted as expected.')
 
-    return selDeltaC, selContrast, SystematicCont, initStatRawContrast, rawContrast, IntContStab, ExtContStab
-
-
-def getDarkCurrent(DET_CBE_Data, monthsatL2):
-    
-        # mission End of Life
-    detEOL_mos = DET_CBE_Data.df.at[0,'DetEOL_mos']
-    missionFraction = monthsatL2 /detEOL_mos
-        
-    # Detector dark current
-
-    detDarkBOM = DET_CBE_Data.df.at[0,'DarkBOM_e_per_pix_per_hr']
-    detDarkEOM = DET_CBE_Data.df.at[0,'DarkEOM_e_per_pix_per_hr']
-    DarkCur_epoch_per_hr = detDarkBOM+missionFraction*(detDarkEOM-detDarkBOM)
-    DarkCur_epoch_per_s = DarkCur_epoch_per_hr/3600
-
-    return detDarkBOM, detDarkEOM, DarkCur_epoch_per_s, DarkCur_epoch_per_hr,\
-        missionFraction, detEOL_mos
+    return selDeltaC, rawContrast, SystematicCont, initStatRawContrast, rawContrast, IntContStab, ExtContStab
 
 
 def getFocalPlaneAttributes(opMode, scenarioData, DET_CBE_Data, lam, bandWidth, DPM, CGdesignWL, omegaPSF):
-    filenamedir = current_dir
-        
-    FocalPlaneAtt = loadCSVrow(Path(filenamedir,'EBcsvData','CONST_SNR_FPattributes.csv'))
-        
-    AmiciPar = loadCSVrow(Path(filenamedir,'EBcsvData','CONST_Amici_parameters.csv'))
-        
-    detPixSize_m = DET_CBE_Data.df.at[0,'PixelSize_m']
-    
-    ## Get Focal Plane Attributes for Selected Operating Mode
-    
-    if opMode == "SPEC":   
+    FocalPlaneAtt = loadCSVrow(Path(os.getcwd(), 'EBcsvData', 'CONST_SNR_FPattributes.csv'))
+    AmiciPar = loadCSVrow(Path(os.getcwd(), 'EBcsvData', 'CONST_Amici_parameters.csv'))
+
+    detPixSize_m = DET_CBE_Data.df.at[0, 'PixelSize_m']
+
+    if opMode == "SPEC":
         try:
-            resolution = scenarioData.at['R_required','Latest']
-            print(f"resolution = {resolution}")
-            f_SR = 1/(resolution*bandWidth)        
+            resolution = scenarioData.at['R_required', 'Latest']
+            f_SR = 1 / (resolution * bandWidth)
         except:
-            print("R_required is not specified in scenario-- set to default 0")
             resolution = 0.0001
-            f_SR = -1 
-    
-                
-        CritLam = FocalPlaneAtt.df.at[1,'Critical_Lambda_m'] 
-        mpix = mpix_Amici(AmiciPar, lam, DPM,detPixSize_m,resolution)
-        pixPlateSc = CritLam/DPM/2/uc.mas 
-        
+            f_SR = -1
+
+        CritLam = FocalPlaneAtt.df.at[1, 'Critical_Lambda_m']
+        compbeamD_m = AmiciPar.df.loc[0, 'compressd_beam_diamtr_m']
+        fnlFocLen_m = AmiciPar.df.loc[0, 'final_focal_length_m']
+        Fno = fnlFocLen_m / compbeamD_m
+        pixPerlamD = lam * Fno / detPixSize_m
+        PSF_x_lamD = AmiciPar.df.loc[0, 'PSF_core_x_extent_lamD']
+        PSF_y_lamD = AmiciPar.df.loc[0, 'PSF_core_y_extent_lamD']
+        xpixPerCor = PSF_x_lamD * 2 * pixPerlamD
+        ypixPerCor = PSF_y_lamD * 2 * pixPerlamD
+        Rlamsq = AmiciPar.df.loc[0, 'lam_squared']
+        Rlam = AmiciPar.df.loc[0, 'lam']
+        Rconst = AmiciPar.df.loc[0, 'constant']
+        ResPowatPSF = Rconst + Rlam * lam + Rlamsq * lam**2
+        dpix_dlam = ResPowatPSF * xpixPerCor / lam
+        xpixPerSpec = dpix_dlam * lam / resolution
+        mpix = xpixPerSpec * ypixPerCor
+        pixPlateSc = CritLam / DPM / 2 / uc.mas
+
     elif opMode == "IMG":
-        f_SR = 1 
-        CritLam = FocalPlaneAtt.df.at[0,'Critical_Lambda_m']
-        mpix = omegaPSF * uc.arcsec**2 * (lam/CGdesignWL)**2*(2*DPM/CritLam)**2 
-        pixPlateSc = CritLam/DPM/2/uc.mas 
+        f_SR = 1
+        CritLam = FocalPlaneAtt.df.at[0, 'Critical_Lambda_m']
+        mpix = omegaPSF * uc.arcsec**2 * (lam / CGdesignWL)**2 * (2 * DPM / CritLam)**2
+        pixPlateSc = CritLam / DPM / 2 / uc.mas
     else:
-        raise Exception("getFocalPlaneAttributes:  Valid Operational Modes are IMG and SPEC")
-    
+        raise Exception("getFocalPlaneAttributes: Valid Operational Modes are IMG and SPEC")
+
     return f_SR, CritLam, detPixSize_m, mpix, pixPlateSc
 
 
-def getSpectra( target, lam, bandWidth):
-    filenamedir = current_dir
-    SpectraFolder = os.path.join(filenamedir,'EBcsvData','Spectra')
-    
-    #### Using hardcoded csv filename
-    SPECTRA_file = os.path.abspath(os.path.join(SpectraFolder,"SPECTRA_ALL_BPGS.csv"))
-    SPECTRA_Data = loadCSVrow(SPECTRA_file)# Spectra data csv to dataframe
-    
-    # rows of the spectra within the request band
-    bandRange = SPECTRA_Data.df[abs(SPECTRA_Data.df['Wavelength_m'] - lam)  <= (0.5*bandWidth*lam)]
-        
-    # temporarily remove the Wavelength column, 
-    # since we want to divide the different spectral types by EPhot
+@dataclass
+class CGParameters:
+    CGcoreThruput: float
+    PSFpeakI: float
+    omegaPSF: float
+    CGintSamp: float
+    CGradius_arcsec: float
+    CGdesignWL: float
+    CGintmpix: float
+    CG_PSFarea_sqlamD: float
+    CGintensity: float
+    CG_occulter_transmission: float
+    CGcontrast: float
+    CGtauPol: float = 1.0
+
+
+@dataclass
+class Target:
+    v_mag: float
+    dist_pc: float
+    specType: str
+    phaseAng_deg: float
+    sma_AU: float
+    radius_Rjup: float
+    geomAlb_ag: float
+    exoZodi: float
+    albedo: float = None
+
+    @staticmethod
+    def phaseAng_to_sep(sma_AU, dist_pc, phaseAng_deg):
+        sep_mas = ((sma_AU * uc.AU * math.sin(math.radians(phaseAng_deg))) / (dist_pc * uc.pc)) / uc.mas
+        return sep_mas
+
+    @staticmethod
+    def fluxRatio_to_deltaMag(fluxRatio):
+        return (-2.5) * math.log10(fluxRatio)
+
+    @staticmethod
+    def deltaMag_to_fluxRatio(deltaMag):
+        return 10 ** (-0.4 * deltaMag)
+
+    @staticmethod
+    def fluxRatio_SMA_rad_to_albedo(fluxRatio, sma_AU, radius_Rjup):
+        return fluxRatio * (sma_AU * uc.AU / (radius_Rjup * uc.jupiterRadius)) ** 2
+
+
+def make_cg_parameters(cg_df, planetWA, DPM):
+    CGtauPol = 1
+    indWA = cg_df[(cg_df.rlamD <= planetWA)]['rlamD'].idxmax()
+
+    CGcoreThruput = cg_df.loc[indWA, 'coreThruput'] * CGtauPol
+    PSFpeakI = cg_df.loc[indWA, 'PSFpeak'] * CGtauPol
+    omegaPSF = cg_df.loc[indWA, 'area_sq_arcsec']
+    CGintSamp = cg_df.loc[2, 'rlamD'] - cg_df.loc[1, 'rlamD']
+    CGradius_arcsec = cg_df.at[indWA, 'r_as']
+
+    CGdesignWL = DPM * cg_df.iloc[0, 1] * uc.arcsec / cg_df.iloc[0, 0]
+    CGintmpix = omegaPSF * (uc.arcsec**2) / ((CGintSamp * CGdesignWL / DPM)**2)
+    CG_PSFarea_sqlamD = omegaPSF / (CGdesignWL / uc.arcsec)**2
+
+    CGintensity = cg_df.loc[indWA, 'I']
+    CG_occulter_transmission = cg_df.at[indWA, 'occTrans'] * CGtauPol
+    CGcontrast = cg_df.loc[indWA, 'contrast']
+
+    return CGParameters(
+        CGcoreThruput=CGcoreThruput,
+        PSFpeakI=PSFpeakI,
+        omegaPSF=omegaPSF,
+        CGintSamp=CGintSamp,
+        CGradius_arcsec=CGradius_arcsec,
+        CGdesignWL=CGdesignWL,
+        CGintmpix=CGintmpix,
+        CG_PSFarea_sqlamD=CG_PSFarea_sqlamD,
+        CGintensity=CGintensity,
+        CG_occulter_transmission=CG_occulter_transmission,
+        CGcontrast=CGcontrast,
+        CGtauPol=CGtauPol
+    )
+
+def getSpectra(target, lam, bandWidth):
+    spectra_path = Path(os.getcwd(), 'EBcsvData', 'Spectra', 'SPECTRA_ALL_BPGS.csv')
+    SPECTRA_Data = loadCSVrow(spectra_path)
+
+    bandRange = SPECTRA_Data.df[abs(SPECTRA_Data.df['Wavelength_m'] - lam) <= (0.5 * bandWidth * lam)]
     onlySpec = bandRange.drop(['Wavelength_m', 'E_ph_J'], axis=1)
-        
-    # Calculate scalar Ephot
-    Ephot = uc.h_planck * uc.c_light / (lam)
-    
-    # Divide each element in each column by Ephot
-    onlySpecEphot = onlySpec.apply(lambda x:x/Ephot, axis =1, result_type ='broadcast')
-    
-    # Calculate the increments of wavelength in the table
-    deltaLambda = SPECTRA_Data.df.at[2,'Wavelength_m'] -SPECTRA_Data.df.at[1,'Wavelength_m']
-    
-    # sum of each of spectral types over multiple wavelengths within band
-    inBandFlux0_sum = (onlySpecEphot.sum(axis=0)) * deltaLambda
-    
-    # Get spectrum for star to find inBWflux0
+
+    Ephot = uc.h_planck * uc.c_light / lam
+    onlySpecEphot = onlySpec.apply(lambda x: x / Ephot, axis=1, result_type='broadcast')
+
+    deltaLambda = SPECTRA_Data.df.at[2, 'Wavelength_m'] - SPECTRA_Data.df.at[1, 'Wavelength_m']
+    inBandFlux0_sum = onlySpecEphot.sum(axis=0) * deltaLambda
+
     inBandZeroMagFlux = inBandFlux0_sum.at[target.specType]
-    
-    starFlux = inBandZeroMagFlux * 10**((-0.4)*target.v_mag) # ph/s/m^2
-      
+    starFlux = inBandZeroMagFlux * 10 ** (-0.4 * target.v_mag)
+
     return inBandFlux0_sum, inBandZeroMagFlux, starFlux
 
+@dataclass
+class DetectorNoise:
+    dark_current_per_s: float
+    CIC_noise_per_s: float
+    read_noise_per_s: float
+    total_noise_rate: float
 
-def getDetectorCIC(DET_CBE_Data, detEMgain, missionFraction, frameTime):
-    
-    # ## Instrument Parameters
-    # # Detector
 
-    detCICdegradationEOM = DET_CBE_Data.df.at[0,'CICdegradationEOM']
-    detCIC1 = DET_CBE_Data.df.at[0,'CICatGain1BOM_e_per_pix_per_fr']
-    detCIC2 = DET_CBE_Data.df.at[0,'CICatGain2BOM_e_per_pix_per_fr']
-    detCICgain1 = DET_CBE_Data.df.at[0,'Gain1BOM']
-    detCICgain2 = DET_CBE_Data.df.at[0,'Gain2BOM']
-    
-    det_CIC_gain = ((detCIC2 - detCIC1)/(detCICgain2 - detCICgain1))*detEMgain\
-        +(detCIC1-((detCIC2 - detCIC1)/(detCICgain2 - detCICgain1))*detCICgain1)\
-            *(1 + missionFraction*(detCICdegradationEOM-1))
+def compute_detector_noise(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCounting):
+    missionFraction = monthsAtL2 / DET_CBE_Data.df.at[0, 'DetEOL_mos']
+    detDarkBOM = DET_CBE_Data.df.at[0, 'DarkBOM_e_per_pix_per_hr']
+    detDarkEOM = DET_CBE_Data.df.at[0, 'DarkEOM_e_per_pix_per_hr']
+    dark_per_hr = detDarkBOM + missionFraction * (detDarkEOM - detDarkBOM)
+    dark_per_s = dark_per_hr / 3600
 
-    det_CIC_in_DC_units = det_CIC_gain/frameTime
+    detCIC1 = DET_CBE_Data.df.at[0, 'CICatGain1BOM_e_per_pix_per_fr']
+    detCIC2 = DET_CBE_Data.df.at[0, 'CICatGain2BOM_e_per_pix_per_fr']
+    gain1 = DET_CBE_Data.df.at[0, 'Gain1BOM']
+    gain2 = DET_CBE_Data.df.at[0, 'Gain2BOM']
+    CIC_degradation = DET_CBE_Data.df.at[0, 'CICdegradationEOM']
+    EMgain = DET_CBE_Data.df.at[0, 'EMGain']
 
-    return det_CIC_in_DC_units,  det_CIC_gain
+    CIC_rate = ((detCIC2 - detCIC1) / (gain2 - gain1)) * EMgain + (
+        detCIC1 - ((detCIC2 - detCIC1) / (gain2 - gain1)) * gain1
+    ) * (1 + missionFraction * (CIC_degradation - 1))
+    CIC_per_s = CIC_rate / frameTime
 
-def getDetectorCosmicRays(perfLevel,DET_CBE_Data, detEMgain, frameTime ):
-    
-    # Cosmic Ray Tail Length
-    detCRtailGain1 = DET_CBE_Data.df.at[0,'CRtailGain1']
-    detCRtailGain2 = DET_CBE_Data.df.at[0,'CRtailGain2']
-    detCRtailLen1 = DET_CBE_Data.df.at[0,'CRtailLen1_pix']
-    detCRtailLen2 = DET_CBE_Data.df.at[0,'CRtailLen2_pix']
-    CRtailLen_CBE = ((detCRtailLen2-detCRtailLen1)/(detCRtailGain2-detCRtailGain1))*detEMgain+(detCRtailLen2- ((detCRtailLen2-detCRtailLen1)/(detCRtailGain2-detCRtailGain1))*detCRtailGain2)
-    
-    CRtailLen_REQ = 150 #pixels -- Made up on 6/14/2021 -- ATTENTION!
-    
-    if perfLevel == "CBE":
-        CRtailLen = CRtailLen_CBE
+    if isPhotonCounting:
+        readNoise = 0
     else:
-        CRtailLen = CRtailLen_REQ
-        
-    CRrate = 5*(100**2) # rays/s/m^2  
-    detPixSize = DET_CBE_Data.df.at[0,'PixelSize_m']
-    detPixAcross = DET_CBE_Data.df.at[0,'PixelsAcross_pix']
-       
-    CRhitsPerFrame = CRrate * frameTime * (detPixSize * detPixAcross)**2 # Cosmic Rays per frame
-    
-    return CRhitsPerFrame,detPixAcross,detPixSize,CRrate,CRtailLen
+        detCamRead = DET_CBE_Data.df.at[0, 'ReadNoise_e']
+        EMgain = DET_CBE_Data.df.at[0, 'EMGain']
+        readNoise = detCamRead / EMgain
 
-def getCTE(DET_CBE_Data, rate_photoConverted,frameTime,missionFraction):
-    detFluxSlope = DET_CBE_Data.df.at[0,'CTE_FluxSlope_per_log_of_flux_per_e_per_pix_per_s']
-    detFluxKnee = DET_CBE_Data.df.at[0,'CTE_dqeKneeFlux_e_per_pix_per_s']
-    
-    signalPerPixPerFrame = rate_photoConverted*frameTime
+    read_noise_per_s = (mpix / frameTime) * (readNoise ** 2)
 
-    CTE_traps = min(1,max(0,(detFluxSlope*missionFraction)\
-                              *(math.log10(signalPerPixPerFrame)-math.log10(detFluxKnee)) +1))
-       
-    detGen = float(DET_CBE_Data.df.at[0,'Generation'])
-    if detGen > 3:
-        detCTEclk = DET_CBE_Data.df.at[0,'CTI_clk']
-        detCTExfers = DET_CBE_Data.df.at[0,'CTI_xfers']
-        CTE_clocking_efficiency = (1-detCTEclk)**detCTExfers
-    else:
-        CTE_clocking_efficiency = 1
-    
-    return CTE_clocking_efficiency, CTE_traps, signalPerPixPerFrame
+    ENF = 1.0 if isPhotonCounting else math.sqrt(2)
+    total_noise_rate = ENF ** 2 * mpix * (dark_per_s + CIC_per_s) + read_noise_per_s
 
-
-
-
-       
-def DRMinstaplanet(planetRate_proc,usableTinteg, totNoiseVarRate,\
-                             residSpecRate, SNRtarget):
-    """User-defined planet specifications and integration time
-    for estimating time to SNR and
-    possible SNR in allowed time"""
-    signalCounts = planetRate_proc*usableTinteg
-    varianceRandomNoise = totNoiseVarRate*usableTinteg 
-    varianceResidSpeckle = (residSpecRate*usableTinteg)**2
-    SNRinAllowedTime = signalCounts/math.sqrt(varianceRandomNoise+varianceResidSpeckle)
-    
-    timetoSNR = (SNRtarget**2)*totNoiseVarRate/\
-        (planetRate_proc**2-SNRtarget**2*residSpecRate**2)/3600
-        
-    instaPlanetDF =\
-        pd.DataFrame({'Name':[f'Time to reach SNR = {SNRtarget}',\
-                              'usable integration', 'signal counts',\
-                              'variance of random noise',\
-                                  'variance of residual speckle',\
-                                      'SNR in allowed time'],\
-                      'Value':[timetoSNR,usableTinteg,signalCounts,\
-                               varianceRandomNoise, varianceResidSpeckle,\
-                                   SNRinAllowedTime],\
-                          'Units':['hrs','sec','e-','e-','e-','SNR']})
-    return instaPlanetDF
-
-
-def DRM_planetSens_Nsigma(residSpecRate, usableTinteg, ENF, k_sp, specRate_proc,\
-                         k_lzo, lzo_bkgRate, k_ezo, ezo_bkgRate, k_det,\
-                             darkNoiseRate, CIC_RNLK_noiseRate, readNoiseRate,\
-                                SNRtarget, Kappa):
-    """Calculations for planet FRN sensitivity"""
-    res_Speckle = residSpecRate*usableTinteg
-    
-    nonPlanetVarRate = (ENF**2)*(k_sp*specRate_proc+k_lzo*lzo_bkgRate+\
-                             k_ezo*ezo_bkgRate+k_det*\
-                             (darkNoiseRate+CIC_RNLK_noiseRate))\
-                        + k_det*readNoiseRate 
-    nonpl_random = math.sqrt(nonPlanetVarRate*usableTinteg)
-    tot_nonpl_noise = math.sqrt(nonpl_random**2 + res_Speckle**2)
-    N_sigmaSens = (0.5*SNRtarget**2)*\
-        (1+math.sqrt(1+4*tot_nonpl_noise**2/SNRtarget**2))*(Kappa*uc.ppb)
-        
-    return nonPlanetVarRate, nonpl_random, tot_nonpl_noise, N_sigmaSens
-
-def DRM_planetSens_contribtoNsigmaSens(N_sigmaSens, tot_nonpl_noise, ENF,\
-                                       k_sp, specRate_proc, zodiRate_proc,\
-                                k_det, darkNoiseRate, CIC_RNLK_noiseRate,\
-                                   readNoiseRate, usableTinteg, f_SR,\
-                                     starFlux, colArea, thpt_t_pnt, dQE):
-    # Contributions to N-sig sensitivity
-    planet_implicit = math.sqrt((ENF**2)*f_SR*starFlux*\
-                                N_sigmaSens*colArea*thpt_t_pnt*\
-                                dQE*usableTinteg)
-    
-    speckle = math.sqrt(ENF**2*k_sp*specRate_proc*usableTinteg)
-    zodi = math.sqrt(ENF**2*k_sp*zodiRate_proc*usableTinteg)
-    dark = math.sqrt(ENF**2*k_det*darkNoiseRate*usableTinteg)
-    cicrnleakage = math.sqrt(ENF**2*k_det*CIC_RNLK_noiseRate*usableTinteg)
-    read = math.sqrt(k_det*readNoiseRate*usableTinteg)
-    
-    # non-planet random noise 
-    nonplanetRandom = math.sqrt(speckle**2 + zodi**2 + dark**2 + cicrnleakage**2 + read**2)
-    
-    SNRcheck = planet_implicit**2/math.sqrt(tot_nonpl_noise**2 + planet_implicit**2)
-    
-    return nonplanetRandom, SNRcheck, planet_implicit, speckle, zodi, dark,\
-        cicrnleakage, read
-
-def DRM_planetSens_NsigmaSensInfiniteTime(k_det, readNoiseRate, usableTinteg,\
-                                          nonpl_random, SNRtarget,\
-                                              residSpecRate, Kappa):
-    read = math.sqrt(k_det*readNoiseRate*usableTinteg)
-    tot_nonpl_noise_inftime = math.sqrt(read**2+nonpl_random**2)
-    infiniteTimeSens = SNRtarget*residSpecRate*(Kappa*uc.ppb)*usableTinteg
-    
-    return tot_nonpl_noise_inftime, infiniteTimeSens
-
-def DRM_planetSens_calcFRN(ENF, k_sp, k_lzo, k_ezo, k_det, lzo_bkgRate, \
-                           ezo_bkgRate, darkNoiseRate, CIC_RNLK_noiseRate,\
-                               readNoiseRate, residSpecRate, specRate_proc,\
-                                   usableTinteg, Kappa):
-    res_Speckle = residSpecRate*usableTinteg
-    
-    randomNoiseRate = ENF**2*(k_sp*specRate_proc+k_lzo*lzo_bkgRate\
-                              +k_ezo*ezo_bkgRate+\
-                                  k_det*(darkNoiseRate+CIC_RNLK_noiseRate))\
-                                    +k_det*readNoiseRate
-    
-    nonplrandom = math.sqrt(randomNoiseRate * usableTinteg)
-    
-    totnonplnoise = math.sqrt(nonplrandom**2 + res_Speckle**2)
-    
-    cstab = Kappa*res_Speckle
-    
-    bde = Kappa*nonplrandom
-    
-    total = Kappa*totnonplnoise
-    
-    return res_Speckle, randomNoiseRate, nonplrandom, totnonplnoise,\
-        cstab, bde, total
-
-
-def mpix_Amici(AmiciPar, lambda_nm, DPM, detPixSize_m, resolution):
-
-    compbeamD_m = AmiciPar.df.loc[0,'compressd_beam_diamtr_m']# compressed beam diameter
-    fnlFocLen_m = AmiciPar.df.loc[0,'final_focal_length_m']# final focal length
-    Fno = fnlFocLen_m / compbeamD_m ; # Fno of final focus
-    
-    pixPerlamD = lambda_nm * uc.nm * Fno / detPixSize_m;# pixels per lam/D
-    PSF_x_lamD = AmiciPar.df.loc[0,'PSF_core_x_extent_lamD']# PSF core x extent--invariant of wavelength
-    PSF_y_lamD = AmiciPar.df.loc[0,'PSF_core_y_extent_lamD'] # PSF core y extent--invariant of wavelength
-    xpixPerCor = PSF_x_lamD * 2 * pixPerlamD; # x direction pixels per core--w/o dispersion
-    ypixPerCor = PSF_y_lamD * 2 * pixPerlamD; # y direction pixels per core--w/o dispersion
-    
-    Rlamsq = AmiciPar.df.loc[0,'lam_squared']
-    Rlam = AmiciPar.df.loc[0,'lam']
-    Rconst = AmiciPar.df.loc[0,'constant']
-    
-    ResPowatPSF = Rconst + Rlam * lambda_nm + Rlamsq * lambda_nm**2# Resolving power at PSF core width--Curve from Qian
-    dpix_dlam = ResPowatPSF * xpixPerCor / lambda_nm# pix/nm Pixelwise dispersion dpix_dlam --Reverse engineered 
-    
-    xpixPerSpec = dpix_dlam * lambda_nm/resolution # x pixels per spectral element in dispersion (x) direction
-    mpix = xpixPerSpec * ypixPerCor #pixels-- mpix (pixels per spec. elem) For the specified R value
-    # mpixlim = xpixPerCor * ypixPerCor #pixels-- mpix core limited
-
-    return mpix
-    
-
-def DRM_tableofNsigma(N_sigmaSens, infiniteTimeSens, planetWA, lamD):
-    """Converts planet FRN sensitity values into ppb for the table of 
-    sensitivities for """
-    # Plot of Flux Ratio Detection Sensitivity for varying Planet separation-------------------
-    
-    nsigmasens_finite = N_sigmaSens/uc.ppb
-    nsigmasens_inf = infiniteTimeSens/uc.ppb
-    separation = planetWA*lamD/uc.mas
-    
-    return separation, nsigmasens_finite, nsigmasens_inf
-
-# def getQE(scenarioData, QE_Data):
-    
-#     lam = float(scenarioData.at['CenterLambda_nm','Latest'])
-#     indQE = QE_Data.df.loc[QE_Data.df['lambda_nm']<=(lam),'lambda_nm'].idxmax()
-#     det_QE  = QE_Data.df.at[indQE,'QE_at_neg100degC']
-    
-#     return det_QE
-
-
-def throughput_pars(perfLevel, THPT_Data, scenarioData, CG_occulter_transmission,\
-                    CGcoreThruput, PSFpeakI, CGtauPol, omegaPSF, DPM, lamD):
-    
-    thpt_t_obsc = THPT_Data.df.at[0,'Pupil_Transmission']
-    
-    colArea =((math.pi/4)*DPM**2)*thpt_t_obsc
-    tau_core_REQ = scenarioData.at['REQ_t_core','Latest']
-    
-    try:
-        if perfLevel=="REQ":
-            thpt_OTA_TCA = THPT_Data.df.at[0,"REQ_OTAplusTCA"]
-            thpt_CGI = THPT_Data.df.at[0,"REQ_CGI"]
-            thpt_t_core = scenarioData.at['REQ_t_core','Latest']
-            thpt_tau_pk = tau_core_REQ/CGcoreThruput*PSFpeakI
-        elif perfLevel=="CBE":
-            thpt_OTA_TCA = THPT_Data.df.at[0,"CBE_OTAplusTCA"]
-            thpt_CGI = THPT_Data.df.at[0,"CBE_CGI"]
-            thpt_t_core = CGcoreThruput
-            thpt_tau_pk = PSFpeakI
-    except:
-        print("Specify perfLevel as REQ or CBE")
-    
-    thpt_t_occ = CG_occulter_transmission/CGtauPol
-    
-    try:
-        thpt_t_PSF =  thpt_t_core/thpt_t_occ
-    except:
-        thpt_t_PSF = 0
-    
-    thpt_t_refl = thpt_OTA_TCA * thpt_CGI;
-    
-    thpt_t_pol  = CGtauPol  # Same for REQ & CBE
-    
-    thpt_t_unif = thpt_t_occ * thpt_t_refl * thpt_t_pol
-    
-    #thpt_t_unif * thpt_t_PSF --t point source used for planet    
-    thpt_t_pnt = thpt_t_pol * thpt_t_refl * thpt_t_core
-   
-    thpt_t_speckle = thpt_t_refl * thpt_t_pol  
-       
-    # omega_PSF is in as2
-    thpt_coreArea_LamD = omegaPSF/(lamD*0.001/uc.mas)**2 
-    
-    thpt_bkgLimitedCore = thpt_t_core/ math.sqrt( thpt_coreArea_LamD )
-    
-    
-    return  thpt_t_obsc, colArea, thpt_OTA_TCA, thpt_CGI, thpt_bkgLimitedCore,\
-            thpt_coreArea_LamD, thpt_t_PSF, thpt_t_core,\
-                 tau_core_REQ, thpt_t_occ, thpt_t_pnt, thpt_t_pol,\
-                    thpt_t_refl, thpt_t_speckle, thpt_t_unif, thpt_tau_pk
-    
-
-
+    return DetectorNoise(
+        dark_current_per_s=dark_per_s,
+        CIC_noise_per_s=CIC_per_s,
+        read_noise_per_s=read_noise_per_s,
+        total_noise_rate=total_noise_rate
+    )
