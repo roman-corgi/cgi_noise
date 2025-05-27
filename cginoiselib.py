@@ -319,7 +319,7 @@ def compute_throughputs(THPT_Data, cg, ezdistrib="falloff"):
     }
 
 
-def rdi_noise_penalty(target, inBandFlux0_sum, starFlux, scenarioDF,
+def rdi_noise_penalty(target, inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_tTar,
                                RefStarSpecType='a0v', RefStarDist=10, RefStarVmag=3.0):
     """
     Compute noise penalty factors for Reference Differential Imaging (RDI).
@@ -328,7 +328,7 @@ def rdi_noise_penalty(target, inBandFlux0_sum, starFlux, scenarioDF,
     - target: Target dataclass instance.
     - inBandFlux0_sum: zero-magnitude flux per spectral type (Series).
     - starFlux: target star flux.
-    - scenarioDF: scenario DataFrame with timing info.
+    - TimeonRefStar_tRef_per_tTar: timing info.
     - RefStarSpecType: spectral type of the reference star (default 'a0v').
     - RefStarDist: distance to the reference star in parsecs (default 10).
     - RefStarVmag: V magnitude of the reference star (default 3.0).
@@ -342,7 +342,7 @@ def rdi_noise_penalty(target, inBandFlux0_sum, starFlux, scenarioDF,
     RefStarFlux = RefStarinBandZeroMagFlux * (10 ** (-0.4 * RefStarVmag))
     BrightnessRatio = RefStarFlux / starFlux
 
-    timeRatio = scenarioDF.at['TimeonRefStar_tRef_per_tTar', 'Latest']
+    timeRatio = TimeonRefStar_tRef_per_tTar #scenarioDF.at['TimeonRefStar_tRef_per_tTar', 'Latest']
     betaRDI = 1 / (BrightnessRatio * timeRatio)
 
     k_sp = 1 + betaRDI

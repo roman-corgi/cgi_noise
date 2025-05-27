@@ -128,6 +128,7 @@ f_SR, CritLam, detPixSize_m, mpix, pixPlateSc = fl.getFocalPlaneAttributes(
 # === Star Flux ===
 inBandFlux0_sum, inBandZeroMagFlux, starFlux = fl.getSpectra(target, lam, bandWidth)
 print(f"Star Flux = {starFlux:.3e} ph/s/m^2")
+TimeonRefStar_tRef_per_tTar = 0.25
 
 # === Planet Flux ===
 fluxRatio = target.albedo * (target.radius_Rjup * uc.jupiterRadius / (target.sma_AU * uc.AU)) ** 2
@@ -136,8 +137,8 @@ print(f"Planet Flux = {planetFlux:.3e} ph/s/m^2")
 
 # === Background Zodi and Speckle Flux ===
 
-magLocalZodi = scenarioDF.at['LocZodi_magas2','Latest']
-magExoZodi_1AU = scenarioDF.at['ExoZodi_magas2','Latest']
+magLocalZodi = config['instrument']['LocZodi_magas2'] #scenarioDF.at['LocZodi_magas2','Latest']
+magExoZodi_1AU = config['instrument']['ExoZodi_magas2'] #scenarioDF.at['ExoZodi_magas2','Latest']
 absMag = target.v_mag - 5 * math.log10(target.dist_pc / 10)
 
 locZodiAngFlux = inBandZeroMagFlux * 10 ** (-0.4 * magLocalZodi)
@@ -178,7 +179,7 @@ ENF, effReadnoise, frameTime, dQE = fl.compute_frame_time_and_dqe(
 
 
 # Account for the additional noise due to RDI through penalty factors
-rdi_penalty = fl.rdi_noise_penalty(target, inBandFlux0_sum, starFlux, scenarioDF)
+rdi_penalty = fl.rdi_noise_penalty(target, inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_tTar)
 k_sp  = rdi_penalty["k_sp"]
 k_det = rdi_penalty["k_det"]
 k_lzo = rdi_penalty["k_lzo"]
@@ -188,7 +189,7 @@ k_ezo = rdi_penalty["k_ezo"]
 detNoiseRate = fl.detector_noise_rates(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCounting)
 
 
-k_pp = scenarioDF.at['pp_Factor_CBE', 'Latest']
+k_pp = config['instrument']['pp_Factor_CBE'] #scenarioDF.at['pp_Factor_CBE', 'Latest']
 eRatesCore, residSpecRate = fl.compute_variance_rates(
     cphrate=cphrate,
     dQE=dQE,

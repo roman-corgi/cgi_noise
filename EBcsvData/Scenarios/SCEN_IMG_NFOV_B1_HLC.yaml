@@ -20,19 +20,10 @@ instrument:
   OpMode: 'IMG' # IMG or SPEC for imaging or spectroscopy
   dutyFactor: 1.0
   R_required: NaN
-  thp_ref: 0.406 # throughput loss for reflections and transmissions
-  thp_pol: 1.0 # throughput loss for polarization
-  thp_fil: 0.9 # filter throughput within its passband
-  PC_threshold: 5.0 # in readNoise units
-  tframe_min:  1.0 # based on system electronics speed and CIC noise
-  tframe_max:  300.0 # based on Cosmic Rays
-  desiredepf: 0.1 # max desired e/pix/fr when photon counting
-  detector: 'EMCCD_PC'
+  LocZodi_magas2: 23
+  ExoZodi_magas2: 22
+  RefStar_SpectralType: 'a0v'
+  RefStar_V_mag_CBE: 2.3
+  pp_Factor_CBE: 2.0
 
-FRN:
-  SNR: 6.0 # goal SNR on target planet
-  integTime: 40.0 # hours of integration time allowed in the FRN EB
-  Reserve:   0.0 # fraction of the total FRN, reserved
-  Calibrations: 3.5 # ppt, FRN allocated to calibrations 
-  RandomNoise:  9.0 # ppt, FRN, allocated to randomNoise
   
