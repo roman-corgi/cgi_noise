@@ -1,3 +1,11 @@
+"""
+Library of core functions for the EB performance modeling pipeline.
+
+This module provides structured access to scenario loading, throughput computation,
+optical and detector models, noise variance calculations, and astrophysical fluxes.
+All units are assumed to follow SI unless otherwise noted, and helper constants
+are provided in the 'unitsConstants' module. 
+"""
 from dataclasses import dataclass
 from pathlib import Path
 import os
