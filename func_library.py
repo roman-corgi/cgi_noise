@@ -225,7 +225,7 @@ def contrastStabilityPars( CSprefix, planetWA, CS_Data):
     ExtContStab = CS_Data.df.at[indCS, fnECS] * uc.ppb
     IntContStab = CS_Data.df.at[indCS, fnICS] * uc.ppb
     
-    rawContrast = CS_Data.df.at[indCS, fnARC] * uc.ppb  #same as average Raw contrast SelContrast in EB spreadsheet
+    rawContrast = CS_Data.df.at[indCS, fnARC]  #same as average Raw contrast SelContrast in EB spreadsheet
     initStatRawContrast = CS_Data.df.at[indCS, fnISRC]  * uc.ppb
     
     selContrast = rawContrast

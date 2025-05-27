@@ -108,7 +108,7 @@ sep_mas    = fl.Target.phaseAng_to_sep(planet_sma_AU, hostStar_dist, planet_phas
 print(f'Separation = {sep_mas:5.0f} mas')
 
 # Set Study Parameters
-SNRtarget  = 5.0 # desired signal to noise ratio
+SNRtarget  = 6.0 # desired signal to noise ratio
 allocTinteg = 100 # integration time in hours
 monthsAtL2 = 21  # months at L2
 isPhotonCounting = True 
