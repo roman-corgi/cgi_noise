@@ -3,7 +3,6 @@ from pathlib import Path
 import os
 import unitsConstants as uc
 import math
-import pandas as pd
 from loadCSVrow import loadCSVrow
 
 
@@ -247,9 +246,6 @@ def detector_noise_rates(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCoun
         readNoise = detCamRead / EMgain
 
     read_noise_per_s = (mpix / frameTime) * (readNoise ** 2)
-
-    # ENF = 1.0 if isPhotonCounting else math.sqrt(2)
-    # total_noise_rate = ENF ** 2 * mpix * (dark_per_s + CIC_per_s) + read_noise_per_s
 
     return DetNoiseRates(
         dark = dark_per_s,

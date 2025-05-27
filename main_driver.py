@@ -183,6 +183,7 @@ BrightnessRatio = RefStarFlux/starFlux
 
 timeRatio = scenarioDF.at['TimeonRefStar_tRef_per_tTar', 'Latest']
 
+
 # RDI normalization factor 
 betaRDI = 1 / (BrightnessRatio*timeRatio)
 
@@ -217,31 +218,28 @@ class varianceRates:
 # object instance: electron rates in core, including a "total" method that is a computed attribute
 eRatesCore = varianceRates();
 
+# contrast instability causes a residual post-differential imaging speckle, with associated contrast
+k_pp = scenarioDF.at['pp_Factor_CBE', 'Latest']
+residSpecRate = f_SR * starFlux * (selDeltaC / k_pp) * cg.PSFpeakI * cg.CGintmpix * speckleThroughput * Acol * dQE
+
+SNRdesired = 5.0
+timeToSNR = SNRdesired**2 * eRatesCore.total / (eRatesCore.planet**2 - SNRdesired**2 * residSpecRate**2)
+
+
+criticalSNR = eRatesCore.planet / residSpecRate
+
+print(f"\nTarget SNR = {SNRdesired:.1f} \nCritical SNR = {criticalSNR:.2f}")
+print(f"Time to SNR = {timeToSNR/uc.hour:.2f} hours")
+
+
+
+ 
 
 
 import sys
 sys.exit()
 
 
-
-
-
-
-# # contrast instability causes a residual post-differential imaging speckle, with associated contrast
-# residSpecRate = starFlux * cstab_REQ.rss * cg.PSF_pk * mpixModel * speckleThroughput * Acol * dQE
-
-
-# timeToSNR = SNRdesired**2 * eRatesCore.total / (eRatesCore.planet**2 - SNRdesired**2 * residSpecRate**2)
-
-
-# criticalSNR = eRatesCore.planet / residSpecRate
-
-# print(f"\nTarget SNR = {SNRdesired:.1f} \nCritical SNR = {criticalSNR:.2f}")
-# print(f"Time to SNR = {timeToSNR/uc.hour:.2f} hours")
-
-
-
- 
 
 
 
