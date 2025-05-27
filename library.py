@@ -4,7 +4,7 @@ import os
 import unitsConstants as uc
 import math
 from loadCSVrow import loadCSVrow
-
+from dataclasses import dataclass, asdict
 
 def open_folder(*folders):
     """Opens a directory and returns a dictionary of file paths keyed by filenames."""
@@ -162,7 +162,7 @@ class Target:
         return fluxRatio * (sma_AU * uc.AU / (radius_Rjup * uc.jupiterRadius)) ** 2
 
 
-def make_cg_parameters(cg_df, planetWA, DPM):
+def coronagraphParameters(cg_df, planetWA, DPM):
     CGtauPol = 1
     indWA = cg_df[(cg_df.rlamD <= planetWA)]['rlamD'].idxmax()
 
@@ -312,3 +312,174 @@ def compute_throughputs(THPT_Data, cg, ezdistrib="falloff"):
     }
 
 
+def rdi_noise_penalty(target, inBandFlux0_sum, starFlux, scenarioDF,
+                               RefStarSpecType='a0v', RefStarDist=10, RefStarVmag=3.0):
+    """
+    Compute noise penalty factors for Reference Differential Imaging (RDI).
+    
+    Parameters:
+    - target: Target dataclass instance.
+    - inBandFlux0_sum: zero-magnitude flux per spectral type (Series).
+    - starFlux: target star flux.
+    - scenarioDF: scenario DataFrame with timing info.
+    - RefStarSpecType: spectral type of the reference star (default 'a0v').
+    - RefStarDist: distance to the reference star in parsecs (default 10).
+    - RefStarVmag: V magnitude of the reference star (default 3.0).
+    
+    Returns:
+    - Dictionary of penalty factors: k_sp, k_det, k_lzo, k_ezo
+    """
+
+    RefStarinBandZeroMagFlux = inBandFlux0_sum.at[RefStarSpecType]
+    RefStarAbsMag = RefStarVmag - 5 * math.log10(RefStarDist / 10)
+    RefStarFlux = RefStarinBandZeroMagFlux * (10 ** (-0.4 * RefStarVmag))
+    BrightnessRatio = RefStarFlux / starFlux
+
+    timeRatio = scenarioDF.at['TimeonRefStar_tRef_per_tTar', 'Latest']
+    betaRDI = 1 / (BrightnessRatio * timeRatio)
+
+    k_sp = 1 + betaRDI
+    k_det = 1 + betaRDI**2 * timeRatio
+    k_lzo = k_det
+    k_ezo = k_sp
+
+    return {
+        "k_sp": k_sp,
+        "k_det": k_det,
+        "k_lzo": k_lzo,
+        "k_ezo": k_ezo
+    }
+
+
+def compute_frame_time_and_dqe(
+    desiredRate, tfmin, tfmax,
+    isPhotonCounting, QE_Data, DET_CBE_Data,
+    lam, mpix, cphrate_total
+):
+    """
+    Compute frame time and effective quantum efficiency (dQE) based on photon counting mode.
+
+    Parameters:
+    - desiredRate: target e-/pix/frame
+    - tfmin, tfmax: min/max allowed frame time (seconds)
+    - isPhotonCounting: True if PC mode, else false
+    - QE_Data: QE curve CSV data
+    - DET_CBE_Data: detector model CSV data
+    - lam: central wavelength (meters)
+    - mpix: number of pixels integrated
+    - cphrate_total: total core photon rate (e-/s)
+
+    Returns:
+    - ENF: excess noise factor
+    - effReadnoise: effective read noise (e-/s)
+    - frameTime: calculated frame time (seconds)
+    - dQE: effective quantum efficiency
+    """
+
+    det_QE = QE_Data.df.loc[QE_Data.df['lambda_nm'] <= (lam / uc.nm), 'QE_at_neg100degC'].iloc[-1]
+    det_EMgain = DET_CBE_Data.df.at[0, 'EMGain']
+    det_readnoise = DET_CBE_Data.df.at[0, 'ReadNoise_e']
+    det_PCthresh = DET_CBE_Data.df.at[0, 'PCThresh_nsigma']
+    det_FWCserial = 90000
+
+    if isPhotonCounting:
+        ENF = 1.0
+        effReadnoise = 0.0
+        frameTime = round(min(tfmax, max(tfmin, desiredRate / (cphrate_total * det_QE / mpix))), 1)
+        approxPerPixelPerFrame = frameTime * cphrate_total * det_QE / mpix
+        eff_coincidence = (1 - math.exp(-approxPerPixelPerFrame)) / approxPerPixelPerFrame if approxPerPixelPerFrame > 0 else 1.0
+        eff_thresholding = math.exp(-det_PCthresh * det_readnoise / det_EMgain)
+        dQE = det_QE * eff_coincidence * eff_thresholding
+    else:
+        ENF = math.sqrt(2)
+        effReadnoise = det_readnoise / det_EMgain
+        Nsigma = 3
+        NEE = Nsigma * ENF * det_EMgain
+        y_crit = ((NEE**2 + 2 * det_FWCserial) - math.sqrt(NEE**4 + 4 * NEE**2 * det_FWCserial)) / 2
+        tfr_crit = y_crit / (cphrate_total * det_QE / mpix)
+        frameTime = min(tfmax, max(tfmin, math.floor(tfr_crit)))
+        dQE = det_QE
+
+    return ENF, effReadnoise, frameTime, dQE
+
+
+@dataclass
+class VarianceRates:
+    planet: float
+    speckle: float
+    locZodi: float
+    exoZodi: float
+    detDark: float
+    detCIC: float
+    detRead: float
+
+    @property
+    def total(self):
+        return sum(asdict(self).values())
+
+    def __repr__(self):
+        fields = asdict(self)
+        fields_str = ", ".join([f"{k}={v:.3e}" for k, v in fields.items()])
+        return f"VarianceRates({fields_str}, total={self.total:.3e})"
+
+def compute_variance_rates(cphrate, dQE, ENF, detNoiseRate, k_sp, k_det, k_lzo, k_ezo,
+                           f_SR, starFlux, selDeltaC, k_pp, cg, speckleThroughput, Acol):
+    """
+    Compute variance rates and residual speckle rate after post-processing.
+
+    Parameters:
+    - All as before, plus:
+      - f_SR: spectral resolution factor
+      - starFlux: flux of the target star
+      - selDeltaC: selected delta contrast (unitless)
+      - k_pp: post-processing factor (e.g., 30 for 30x speckle suppression)
+      - cg: CGParameters object
+      - speckleThroughput: total system throughput for speckle
+      - Acol: collecting area (m^2)
+
+    Returns:
+    - VarianceRates object
+    - residSpecRate: residual speckle rate (e-/s)
+    """
+
+    residSpecRate = (
+        f_SR * starFlux * (selDeltaC / k_pp) *
+        cg.PSFpeakI * cg.CGintmpix *
+        speckleThroughput * Acol * dQE
+    )
+
+    rates = VarianceRates(
+        planet  = ENF**2 * cphrate.planet * dQE,
+        speckle = ENF**2 * cphrate.speckle * dQE * k_sp,
+        locZodi = ENF**2 * cphrate.locZodi * dQE * k_lzo,
+        exoZodi = ENF**2 * cphrate.exoZodi * dQE * k_ezo,
+        detDark = ENF**2 * detNoiseRate.dark * k_det,
+        detCIC  = ENF**2 * detNoiseRate.CIC  * k_det,
+        detRead = detNoiseRate.read * k_det,
+    )
+
+    return rates, residSpecRate
+
+
+def compute_tsnr(SNRdesired, eRatesCore, residSpecRate):
+    """
+    Compute the required integration time and critical SNR.
+
+    Parameters:
+    - SNRdesired: Target signal-to-noise ratio (float)
+    - eRatesCore: VarianceRates object (must include .planet and .total)
+    - residSpecRate: residual speckle rate in electrons/sec
+
+    Returns:
+    - timeToSNR: integration time in seconds to reach SNRdesired
+    - criticalSNR: maximum achievable SNR given residual speckle
+    """
+
+    denom = eRatesCore.planet**2 - SNRdesired**2 * residSpecRate**2
+    if denom <= 0:
+        raise ValueError("SNR condition is not achievable with given residual speckle level.")
+
+    timeToSNR = SNRdesired**2 * eRatesCore.total / denom
+    criticalSNR = eRatesCore.planet / residSpecRate
+
+    return timeToSNR, criticalSNR

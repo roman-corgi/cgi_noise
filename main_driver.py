@@ -85,7 +85,7 @@ print(f"Raw Contrast: {rawContrast:.3e}")
 print(f"Selected Delta Contrast: {selDeltaC:.3e}")
 
 # === Coronagraph Slice Parameters ===
-cg = fl.make_cg_parameters(CG_Data.df, planetWA, DPM)
+cg = fl.coronagraphParameters(CG_Data.df, planetWA, DPM)
 
 # === Focal Plane Setup ===
 opMode = scenarioDF.at['OPMODE_IMG_SPEC', 'Latest']
@@ -128,6 +128,7 @@ speckleThroughput = throughput_rates["speckle"]
 locZodiThroughput = throughput_rates["local_zodi"]
 exoZodiThroughput = throughput_rates["exo_zodi"]
 
+# Unobscured Collecting Aperture Area (obscuration accounted separately)
 Acol = (np.pi / 4.0) * DPM**2
 
 @dataclass
@@ -141,115 +142,52 @@ cphrate = corePhotonRates()
 
 
 # === Frame Time and dQE Calculation ===
-desiredRate = 0.1  # e/pix/frame — user-defined efficiency target
-tfmin = 1          # minimum allowable frame time (s)
-tfmax = 100        # maximum allowable frame time (s)
+desiredRate = 0.1  # e-/pix/frame
+tfmin = 1          # min frame time (s)
+tfmax = 100        # max frame time (s)
 
-det_QE = QE_Data.df.loc[QE_Data.df['lambda_nm'] <= (lam / uc.nm), 'QE_at_neg100degC'].iloc[-1]
-det_EMgain = DET_CBE_Data.df.at[0, 'EMGain']
-det_readnoise = DET_CBE_Data.df.at[0, 'ReadNoise_e']
-det_PCthresh = DET_CBE_Data.df.at[0, 'PCThresh_nsigma']
-det_FWCserial = 90000
-
-if isPhotonCounting:
-    ENF = 1.0
-    effReadnoise = 0.0
-    frameTime = round(min(tfmax, max(tfmin, desiredRate / (cphrate.total * det_QE / mpix))), 1)
-    approxPerPixelPerFrame = frameTime * cphrate.total * det_QE / mpix
-    eff_coincidence = (1 - math.exp(-approxPerPixelPerFrame)) / approxPerPixelPerFrame if approxPerPixelPerFrame > 0 else 1.0
-    eff_thresholding = math.exp(-det_PCthresh * det_readnoise / det_EMgain)
-    dQE = det_QE * eff_coincidence * eff_thresholding
-else:
-    ENF = math.sqrt(2)
-    effReadnoise = det_readnoise / det_EMgain
-    Nsigma = 3
-    NEE = Nsigma * ENF * det_EMgain
-    y_crit = ((NEE**2 + 2 * det_FWCserial) - math.sqrt(NEE**4 + 4 * NEE**2 * det_FWCserial)) / 2
-    tfr_crit = y_crit / (cphrate.total * det_QE / mpix)
-    frameTime = min(tfmax, max(tfmin, math.floor(tfr_crit)))
-    dQE = det_QE
+ENF, effReadnoise, frameTime, dQE = fl.compute_frame_time_and_dqe(
+    desiredRate, tfmin, tfmax,
+    isPhotonCounting, QE_Data, DET_CBE_Data,
+    lam, mpix, cphrate.total
+)
 
 
-# === Reference Star Noise Penalty in RDI ===
-RefStarSpecType ='a0v'
-RefStarDist = 10 # pc
-RefStarVmag = 3.0
-
-RefStarinBandZeroMagFlux = inBandFlux0_sum.at[RefStarSpecType]
-RefStarAbsMag = RefStarVmag - 5*math.log10(RefStarDist/10)
-RefStarDeltaMag = target.v_mag - RefStarVmag
-RefStarFlux = RefStarinBandZeroMagFlux*(10**((-0.4)*RefStarVmag))
-BrightnessRatio = RefStarFlux/starFlux
-
-timeRatio = scenarioDF.at['TimeonRefStar_tRef_per_tTar', 'Latest']
-
-
-# RDI normalization factor 
-betaRDI = 1 / (BrightnessRatio*timeRatio)
-
-k_sp  = 1 + betaRDI
-k_det = 1 + betaRDI**2 * timeRatio
-k_lzo = k_det
-k_ezo = k_sp
+# Account for the additional noise due to RDI through penalty factors
+rdi_penalty = fl.rdi_noise_penalty(target, inBandFlux0_sum, starFlux, scenarioDF)
+k_sp  = rdi_penalty["k_sp"]
+k_det = rdi_penalty["k_det"]
+k_lzo = rdi_penalty["k_lzo"]
+k_ezo = rdi_penalty["k_ezo"]
 
 # === Detector noise calculation ===
 detNoiseRate = fl.detector_noise_rates(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCounting)
 
-# noise variance rates class
-@dataclass
-class varianceRates:
-    planet:  float  = ENF**2 * cphrate.planet * dQE 
-    speckle: float  = ENF**2 * cphrate.speckle * dQE * k_sp
-    locZodi: float  = ENF**2 * cphrate.locZodi * dQE * k_lzo
-    exoZodi: float  = ENF**2 * cphrate.exoZodi * dQE * k_ezo
-    detDark: float  = ENF**2 * detNoiseRate.dark * k_det
-    detCIC:  float  = ENF**2 * detNoiseRate.CIC  * k_det
-    detRead: float =           detNoiseRate.read * k_det
 
-    @property
-    def total(self):
-        return sum(asdict(self).values())
-
-    def __repr__(self):
-        fields = asdict(self)
-        fields_str = ", ".join([f"{k}={v}" for k, v in fields.items()])
-        return f"varianceRates({fields_str}, total={self.total})"
-
-# object instance: electron rates in core, including a "total" method that is a computed attribute
-eRatesCore = varianceRates();
-
-# contrast instability causes a residual post-differential imaging speckle, with associated contrast
 k_pp = scenarioDF.at['pp_Factor_CBE', 'Latest']
-residSpecRate = f_SR * starFlux * (selDeltaC / k_pp) * cg.PSFpeakI * cg.CGintmpix * speckleThroughput * Acol * dQE
+eRatesCore, residSpecRate = fl.compute_variance_rates(
+    cphrate=cphrate,
+    dQE=dQE,
+    ENF=ENF,
+    detNoiseRate=detNoiseRate,
+    k_sp=k_sp,
+    k_det=k_det,
+    k_lzo=k_lzo,
+    k_ezo=k_ezo,
+    f_SR=f_SR,
+    starFlux=starFlux,
+    selDeltaC=selDeltaC,
+    k_pp=k_pp,
+    cg=cg,
+    speckleThroughput=speckleThroughput,
+    Acol=Acol
+)
 
 SNRdesired = 5.0
-timeToSNR = SNRdesired**2 * eRatesCore.total / (eRatesCore.planet**2 - SNRdesired**2 * residSpecRate**2)
-
-
-criticalSNR = eRatesCore.planet / residSpecRate
+timeToSNR, criticalSNR = fl.compute_tsnr(SNRdesired, eRatesCore, residSpecRate)
 
 print(f"\nTarget SNR = {SNRdesired:.1f} \nCritical SNR = {criticalSNR:.2f}")
 print(f"Time to SNR = {timeToSNR/uc.hour:.2f} hours")
-
-
-
- 
-
-
-import sys
-sys.exit()
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
