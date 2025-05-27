@@ -6,6 +6,8 @@ from datetime import datetime
 from loadXLcol import loadXLcol
 import unitsConstants as uc
 import library as fl
+from dataclasses import dataclass, asdict
+import numpy as np
 
 current_dir = os.getcwd()
 print(f"Working directory: {current_dir}")
@@ -74,7 +76,7 @@ elif planetWA < (IWA - tolerance) or planetWA > (OWA + tolerance):
 
 print(f"Planet Working Angle: {planetWA:.2f} λ/D")
 
-# === Throughput Parameters ===
+# === Contrast Stability Parameters ===
 CSprefix = 'MCBE_'
 selDeltaC, rawContrast, SystematicCont, initStatRawContrast, \
     rawContrast, IntContStab, ExtContStab = fl.contrastStabilityPars(CSprefix, planetWA, CS_Data)
@@ -109,28 +111,33 @@ planetFlux = fluxRatio * starFlux
 print(f"Planet Flux = {planetFlux:.3e} ph/s/m^2")
 
 # === Background Zodi and Speckle Flux ===
+
 magLocalZodi = scenarioDF.at['LocZodi_magas2','Latest']
 magExoZodi_1AU = scenarioDF.at['ExoZodi_magas2','Latest']
 absMag = target.v_mag - 5 * math.log10(target.dist_pc / 10)
 
-loZodiAngFlux = inBandZeroMagFlux * 10 ** (-0.4 * magLocalZodi)
-exoZodiAngFlux = target.exoZodi * inBandZeroMagFlux * 10 ** (-0.4 * (absMag - uc.sunAbsMag + magExoZodi_1AU)) / target.sma_AU**2
+locZodiAngFlux = inBandZeroMagFlux * 10 ** (-0.4 * magLocalZodi)
+exoZodiAngFlux = inBandZeroMagFlux * 10 ** (-0.4 * (absMag - uc.sunAbsMag + magExoZodi_1AU)) / target.sma_AU**2 * target.exoZodi
 
-ZodiFlux = (loZodiAngFlux + exoZodiAngFlux) * cg.omegaPSF
-loZodiFlux = loZodiAngFlux * cg.omegaPSF
-exoZodiFlux = exoZodiAngFlux * cg.omegaPSF
+exoZodiDistrib = "falloff"  # Options: "lumpy", "uniform", "falloff"
 
-rate_speckleBkg = f_SR * starFlux * rawContrast * cg.PSFpeakI * cg.CGintmpix * cg.CGtauPol * cg.omegaPSF
+thput, throughput_rates = fl.compute_throughputs(THPT_Data, cg, exoZodiDistrib)
 
-print(f"Zodi Flux = {ZodiFlux:.3e} ph/s/m^2")
-print(f"  Local Zodi Flux  = {loZodiFlux:.3e}")
-print(f"  Exo-Zodi Flux    = {exoZodiFlux:.3e}")
-print(f"Speckle Rate = {rate_speckleBkg:.3e} e-/s")
+planetThroughput  = throughput_rates["planet"]
+speckleThroughput = throughput_rates["speckle"]
+locZodiThroughput = throughput_rates["local_zodi"]
+exoZodiThroughput = throughput_rates["exo_zodi"]
 
-# === Placeholder Output ===
-print("Speckle rate calculation complete. Ready for detector noise and SNR estimation.")
+Acol = (np.pi / 4.0) * DPM**2
 
-
+@dataclass
+class corePhotonRates:
+    planet:  float = planetFlux * planetThroughput * Acol 
+    speckle: float = starFlux * rawContrast * cg.PSFpeakI * cg.CGintmpix * speckleThroughput * Acol 
+    locZodi: float = locZodiAngFlux * cg.omegaPSF * locZodiThroughput * Acol 
+    exoZodi: float = exoZodiAngFlux * cg.omegaPSF * exoZodiThroughput * Acol  
+    total:   float = planet + speckle + locZodi + exoZodi
+cphrate = corePhotonRates()
 
 
 # === Frame Time and dQE Calculation ===
@@ -147,9 +154,8 @@ det_FWCserial = 90000
 if isPhotonCounting:
     ENF = 1.0
     effReadnoise = 0.0
-    rate_total = rate_speckleBkg  # or use sum of all incident background rates
-    frameTime = round(min(tfmax, max(tfmin, desiredRate / (rate_total / mpix * det_QE))), 1)
-    approxPerPixelPerFrame = frameTime * rate_total * det_QE / mpix
+    frameTime = round(min(tfmax, max(tfmin, desiredRate / (cphrate.total * det_QE / mpix))), 1)
+    approxPerPixelPerFrame = frameTime * cphrate.total * det_QE / mpix
     eff_coincidence = (1 - math.exp(-approxPerPixelPerFrame)) / approxPerPixelPerFrame if approxPerPixelPerFrame > 0 else 1.0
     eff_thresholding = math.exp(-det_PCthresh * det_readnoise / det_EMgain)
     dQE = det_QE * eff_coincidence * eff_thresholding
@@ -159,28 +165,83 @@ else:
     Nsigma = 3
     NEE = Nsigma * ENF * det_EMgain
     y_crit = ((NEE**2 + 2 * det_FWCserial) - math.sqrt(NEE**4 + 4 * NEE**2 * det_FWCserial)) / 2
-    rate_total = rate_speckleBkg
-    tfr_crit = y_crit / (rate_total / mpix * det_QE)
+    tfr_crit = y_crit / (cphrate.total * det_QE / mpix)
     frameTime = min(tfmax, max(tfmin, math.floor(tfr_crit)))
     dQE = det_QE
 
 
+# === Reference Star Noise Penalty in RDI ===
+RefStarSpecType ='a0v'
+RefStarDist = 10 # pc
+RefStarVmag = 3.0
 
+RefStarinBandZeroMagFlux = inBandFlux0_sum.at[RefStarSpecType]
+RefStarAbsMag = RefStarVmag - 5*math.log10(RefStarDist/10)
+RefStarDeltaMag = target.v_mag - RefStarVmag
+RefStarFlux = RefStarinBandZeroMagFlux*(10**((-0.4)*RefStarVmag))
+BrightnessRatio = RefStarFlux/starFlux
 
+timeRatio = scenarioDF.at['TimeonRefStar_tRef_per_tTar', 'Latest']
+
+# RDI normalization factor 
+betaRDI = 1 / (BrightnessRatio*timeRatio)
+
+k_sp  = 1 + betaRDI
+k_det = 1 + betaRDI**2 * timeRatio
+k_lzo = k_det
+k_ezo = k_sp
 
 # === Detector noise calculation ===
-det_noise = fl.compute_detector_noise(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCounting)
+detNoiseRate = fl.detector_noise_rates(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCounting)
 
-print(f"Total Detector Noise Rate = {det_noise.total_noise_rate:.3e} e-/s")
-print(f"  Dark Current Rate  = {det_noise.dark_current_per_s:.3e} e-/s")
-print(f"  CIC Noise Rate     = {det_noise.CIC_noise_per_s:.3e} e-/s")
-print(f"  Read Noise Rate    = {det_noise.read_noise_per_s:.3e} e-/s")
+# noise variance rates class
+@dataclass
+class varianceRates:
+    planet:  float  = ENF**2 * cphrate.planet * dQE 
+    speckle: float  = ENF**2 * cphrate.speckle * dQE * k_sp
+    locZodi: float  = ENF**2 * cphrate.locZodi * dQE * k_lzo
+    exoZodi: float  = ENF**2 * cphrate.exoZodi * dQE * k_ezo
+    detDark: float  = ENF**2 * detNoiseRate.dark * k_det
+    detCIC:  float  = ENF**2 * detNoiseRate.CIC  * k_det
+    detRead: float =           detNoiseRate.read * k_det
+
+    @property
+    def total(self):
+        return sum(asdict(self).values())
+
+    def __repr__(self):
+        fields = asdict(self)
+        fields_str = ", ".join([f"{k}={v}" for k, v in fields.items()])
+        return f"varianceRates({fields_str}, total={self.total})"
+
+# object instance: electron rates in core, including a "total" method that is a computed attribute
+eRatesCore = varianceRates();
+
+
+
+import sys
+sys.exit()
 
 
 
 
 
 
+# # contrast instability causes a residual post-differential imaging speckle, with associated contrast
+# residSpecRate = starFlux * cstab_REQ.rss * cg.PSF_pk * mpixModel * speckleThroughput * Acol * dQE
+
+
+# timeToSNR = SNRdesired**2 * eRatesCore.total / (eRatesCore.planet**2 - SNRdesired**2 * residSpecRate**2)
+
+
+# criticalSNR = eRatesCore.planet / residSpecRate
+
+# print(f"\nTarget SNR = {SNRdesired:.1f} \nCritical SNR = {criticalSNR:.2f}")
+# print(f"Time to SNR = {timeToSNR/uc.hour:.2f} hours")
+
+
+
+ 
 
 
 

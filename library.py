@@ -215,14 +215,12 @@ def getSpectra(target, lam, bandWidth):
     return inBandFlux0_sum, inBandZeroMagFlux, starFlux
 
 @dataclass
-class DetectorNoise:
-    dark_current_per_s: float
-    CIC_noise_per_s: float
-    read_noise_per_s: float
-    total_noise_rate: float
+class DetNoiseRates:
+    dark: float
+    CIC: float
+    read: float
 
-
-def compute_detector_noise(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCounting):
+def detector_noise_rates(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCounting):
     missionFraction = monthsAtL2 / DET_CBE_Data.df.at[0, 'DetEOL_mos']
     detDarkBOM = DET_CBE_Data.df.at[0, 'DarkBOM_e_per_pix_per_hr']
     detDarkEOM = DET_CBE_Data.df.at[0, 'DarkEOM_e_per_pix_per_hr']
@@ -250,12 +248,71 @@ def compute_detector_noise(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCo
 
     read_noise_per_s = (mpix / frameTime) * (readNoise ** 2)
 
-    ENF = 1.0 if isPhotonCounting else math.sqrt(2)
-    total_noise_rate = ENF ** 2 * mpix * (dark_per_s + CIC_per_s) + read_noise_per_s
+    # ENF = 1.0 if isPhotonCounting else math.sqrt(2)
+    # total_noise_rate = ENF ** 2 * mpix * (dark_per_s + CIC_per_s) + read_noise_per_s
 
-    return DetectorNoise(
-        dark_current_per_s=dark_per_s,
-        CIC_noise_per_s=CIC_per_s,
-        read_noise_per_s=read_noise_per_s,
-        total_noise_rate=total_noise_rate
+    return DetNoiseRates(
+        dark = dark_per_s,
+        CIC  = CIC_per_s,
+        read = read_noise_per_s
     )
+
+
+
+@dataclass
+class Throughput:
+    refl: float
+    filt: float
+    polr: float
+    core: float
+    occt: float
+
+def compute_throughputs(THPT_Data, cg, ezdistrib="falloff"):
+    """
+    Compute optical throughputs and exozodi factors.
+
+    Parameters:
+    - THPT_Data: loaded CSV row with throughput data.
+    - cg: CGParameters object.
+    - ezdistrib: Exo-Zodi distribution: one of {"lumpy", "uniform", "falloff"}
+
+    Returns:
+    - Throughput instance.
+    - Dictionary with total throughputs: planet, speckle, local_zodi, exo_zodi
+    """
+
+    # Select the appropriate distribution factor for exozodi
+    dist_map = {
+        "lumpy": 0.49,
+        "uniform": 1.00,
+        "falloff": 0.74
+    }
+
+    if ezdistrib not in dist_map:
+        raise ValueError(f"Invalid ezodistribution: {ezdistrib}. Must be 'lumpy', 'uniform', or 'falloff'.")
+
+    distFactor = dist_map[ezdistrib]
+
+    thput = Throughput(
+        refl=THPT_Data.df.at[0, 'Pupil_Transmission']
+             * THPT_Data.df.at[0, 'CBE_OTAplusTCA']
+             * THPT_Data.df.at[0, 'CBE_CGI'],
+        filt=1.0,
+        polr=1.0,
+        core=THPT_Data.df.at[0, 'CBE_Core'],
+        occt=cg.CG_occulter_transmission
+    )
+
+    planetThroughput  = thput.refl * thput.filt * thput.polr * thput.core
+    speckleThroughput = thput.refl * thput.filt * thput.polr * thput.polr
+    locZodiThroughput = thput.refl * thput.filt * thput.polr * thput.occt
+    exoZodiThroughput = locZodiThroughput * distFactor
+
+    return thput, {
+        "planet": planetThroughput,
+        "speckle": speckleThroughput,
+        "local_zodi": locZodiThroughput,
+        "exo_zodi": exoZodiThroughput
+    }
+
+
