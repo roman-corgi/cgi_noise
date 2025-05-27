@@ -1,13 +1,39 @@
-# main_driver.py - Converted to a script version (no main function)
+"""
+This script simulates an astronomical observation scenario, specifically for exoplanet imaging. 
+It calculates various parameters related to the target star and planet, instrument performance, 
+and ultimately estimates the time required to achieve a desired signal-to-noise ratio (SNR) 
+for detecting the exoplanet.
+
+The script performs the following major steps:
+1.  Loads a scenario configuration from a YAML file.
+2.  Defines astronomical and instrument constants.
+3.  Sets up the target host star and exoplanet parameters.
+4.  Loads required CSV data files for coronagraph, detector, throughput, etc.
+5.  Calculates the planet's working angle.
+6.  Determines contrast stability parameters.
+7.  Sets up coronagraph and focal plane parameters.
+8.  Calculates star and planet flux.
+9.  Estimates background zodi and speckle flux.
+10. Computes core photon rates (planet, speckle, zodi).
+11. Determines optimal frame time and differential quantum efficiency (dQE).
+12. Accounts for Reference Differential Imaging (RDI) noise penalties.
+13. Calculates detector noise rates.
+14. Computes variance rates and residual speckle rates.
+15. Calculates the time to achieve the desired SNR.
+
+Uses external libraries: 'unitsConstants' for physical unit conversions and 
+'cginoiselib' for specialized astronomical and instrument calculations.
+"""
 
 import os
 import math
 from datetime import datetime
-from loadXLcol import loadXLcol
 import unitsConstants as uc
 import cginoiselib as fl
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 import numpy as np
+import yaml
+import sys
 
 current_dir = os.getcwd()
 print(f"Working directory: {current_dir}")
@@ -15,33 +41,44 @@ current_datetime = datetime.now()
 print(f"Run started at: {current_datetime}")
 
 # === Scenario Selection ===
-scenario_filename = 'SCEN_IMG_NFOV_B1_HLC.xlsx'
+# Load scenario configuration from a YAML file.
+scenario_filename = 'SCEN_IMG_NFOV_B1_HLC.yaml'
 scenFolder = fl.open_folder("EBcsvData", "Scenarios")
-scenarioDF = loadXLcol(scenFolder[scenario_filename], 30).df
-scenario = scenarioDF.at['Scenario', 'Latest']
+try:
+    with open(scenFolder[scenario_filename], "r") as file:
+        config = yaml.safe_load(file)
+except FileNotFoundError:
+    print("Error: config.yaml not found!")
+    sys.exit(1)
+except yaml.YAMLError as e:
+    print(f"Error parsing YAML: {e}")
+    sys.exit(1)
 
 # === Constants ===
+# Define fundamental physical and instrument constants.
 DPM = 2.363 * uc.meter
-lam = scenarioDF.at['CenterLambda_nm', 'Latest'] * uc.nm
+lam = config['instrument']['wavelength']
 lamD = lam / DPM
-intTimeDutyFactor = scenarioDF.at['DutyFactor_CBE', 'Latest']
+intTimeDutyFactor = config['instrument']['dutyFactor']
 
 print(f"Wavelength: {lam / uc.nm} nm")
 print(f"Lambda/D: {lamD / uc.mas:.3f} mas")
 
 # === Define Host Star and Planet ===
+# Uses the Target class from cginoiselib to define the exoplanetary system.
 target = fl.Target(
     v_mag=5.05,
     dist_pc=13.8,
     specType='g0v',
     phaseAng_deg=65,
-    sma_AU=5,
+    sma_AU=3.197,
     radius_Rjup=1,
     geomAlb_ag=0.3,
     exoZodi=1,
 )
 
 # === User-defined inputs ===
+# Define observation parameters and constraints.
 allocatedTime = 100 * uc.hour
 monthsAtL2 = 21
 frameTime = 10.0 * uc.second
@@ -60,13 +97,17 @@ print(f"Separation: {sep_mas:.0f} mas")
 print(f"Albedo: {target.albedo:.3f}")
 
 # === Load Required CSV Files ===
-filenameList = fl.getScenFileNames_DRM(scenarioDF)
+# Load various instrument and atmospheric data from CSV files.
+filenameList = fl.getScenFileNames(config)
 CG_Data, QE_Data, DET_CBE_Data, STRAY_FRN_Data, THPT_Data, CAL_Data, CS_Data = fl.loadCSVs(filenameList)
 
 # === Planet Working Angle ===
-IWA, OWA = fl.workingAnglePars(CG_Data, CS_Data)
-planetWA = sep_mas * uc.mas / lamD
-tolerance = 0.05
+# Calculate the planet's working angle in units of lambda/D.
+IWA, OWA = fl.workingAnglePars(CG_Data, CS_Data) # Inner and Outer Working Angles
+planetWA = sep_mas * uc.mas / lamD  # Planet working angle
+tolerance = 0.05  # Tolerance for working angle adjustment
+
+# Adjust planetWA to be exactly IWA or OWA if it's very close, or raise error if outside range.
 if (IWA - tolerance) <= planetWA <= IWA:
     planetWA = IWA
 elif OWA <= planetWA <= (OWA + tolerance):
@@ -77,6 +118,7 @@ elif planetWA < (IWA - tolerance) or planetWA > (OWA + tolerance):
 print(f"Planet Working Angle: {planetWA:.2f} λ/D")
 
 # === Contrast Stability Parameters ===
+# Determine contrast stability parameters from loaded data.
 CSprefix = 'MCBE_'
 selDeltaC, rawContrast, SystematicCont, initStatRawContrast, \
     rawContrast, IntContStab, ExtContStab = fl.contrastStabilityPars(CSprefix, planetWA, CS_Data)
@@ -85,14 +127,16 @@ print(f"Raw Contrast: {rawContrast:.3e}")
 print(f"Selected Delta Contrast: {selDeltaC:.3e}")
 
 # === Coronagraph Slice Parameters ===
+# Extract coronagraph parameters for the calculated working angle.
 cg = fl.coronagraphParameters(CG_Data.df, planetWA, DPM)
 
 # === Focal Plane Setup ===
-opMode = scenarioDF.at['OPMODE_IMG_SPEC', 'Latest']
-bandWidth = scenarioDF.at['BW', 'Latest']
+# Configure focal plane attributes based on operational mode and instrument config.
+opMode = config['instrument']['OpMode']
+bandWidth = config['instrument']['bandwidth']
 f_SR, CritLam, detPixSize_m, mpix, pixPlateSc = fl.getFocalPlaneAttributes(
     opMode,
-    scenarioDF,
+    config,
     DET_CBE_Data,
     lam,
     bandWidth,
@@ -102,25 +146,30 @@ f_SR, CritLam, detPixSize_m, mpix, pixPlateSc = fl.getFocalPlaneAttributes(
 )
 
 # === Star Flux ===
+# Calculate the flux from the host star.
 inBandFlux0_sum, inBandZeroMagFlux, starFlux = fl.getSpectra(target, lam, bandWidth)
 print(f"Star Flux = {starFlux:.3e} ph/s/m^2")
+TimeonRefStar_tRef_per_tTar = 0.25
 
 # === Planet Flux ===
+# Calculate the flux from the exoplanet.
 fluxRatio = target.albedo * (target.radius_Rjup * uc.jupiterRadius / (target.sma_AU * uc.AU)) ** 2
 planetFlux = fluxRatio * starFlux
 print(f"Planet Flux = {planetFlux:.3e} ph/s/m^2")
 
 # === Background Zodi and Speckle Flux ===
+# Calculate flux from local and exo-zodiacal light, and speckles.
 
-magLocalZodi = scenarioDF.at['LocZodi_magas2','Latest']
-magExoZodi_1AU = scenarioDF.at['ExoZodi_magas2','Latest']
-absMag = target.v_mag - 5 * math.log10(target.dist_pc / 10)
+magLocalZodi = config['instrument']['LocZodi_magas2']    # Magnitude of local zodiacal light
+magExoZodi_1AU = config['instrument']['ExoZodi_magas2']  # Magnitude of exo-zodiacal light at 1 AU
+absMag = target.v_mag - 5 * math.log10(target.dist_pc / 10) # Absolute magnitude of the host star
 
 locZodiAngFlux = inBandZeroMagFlux * 10 ** (-0.4 * magLocalZodi)
 exoZodiAngFlux = inBandZeroMagFlux * 10 ** (-0.4 * (absMag - uc.sunAbsMag + magExoZodi_1AU)) / target.sma_AU**2 * target.exoZodi
 
-exoZodiDistrib = "uniform"  # Options: "lumpy", "uniform", "falloff"
+exoZodiDistrib = "uniform"  # Distribution model for exo-zodiacal light. Options: "lumpy", "uniform", "falloff"
 
+# Compute various throughputs based on the coronagraph and exo-zodi distribution.
 thput, throughput_rates = fl.compute_throughputs(THPT_Data, cg, exoZodiDistrib)
 
 planetThroughput  = throughput_rates["planet"]
@@ -128,11 +177,21 @@ speckleThroughput = throughput_rates["speckle"]
 locZodiThroughput = throughput_rates["local_zodi"]
 exoZodiThroughput = throughput_rates["exo_zodi"]
 
-# Unobscured Collecting Aperture Area (obscuration accounted separately)
+# Unobscured Collecting Aperture Area (obscuration accounted for separately in throughputs)
 Acol = (np.pi / 4.0) * DPM**2
 
 @dataclass
 class corePhotonRates:
+    """
+    Dataclass to store the core photon rates from different sources at the detector.
+
+    Attributes:
+        planet (float): Photon rate from the exoplanet (photons/second).
+        speckle (float): Photon rate from residual star light (speckles) (photons/second).
+        locZodi (float): Photon rate from local zodiacal light (photons/second).
+        exoZodi (float): Photon rate from exo-zodiacal light (photons/second).
+        total (float): Sum of all core photon rates (photons/second).
+    """
     planet:  float = planetFlux * planetThroughput * Acol 
     speckle: float = starFlux * rawContrast * cg.PSFpeakI * cg.CGintmpix * speckleThroughput * Acol 
     locZodi: float = locZodiAngFlux * cg.omegaPSF * locZodiThroughput * Acol 
@@ -142,6 +201,7 @@ cphrate = corePhotonRates()
 
 
 # === Frame Time and dQE Calculation ===
+# Determine the optimal frame time and detector's differential Quantum Efficiency (dQE).
 desiredRate = 0.1  # e-/pix/frame
 tfmin = 1          # min frame time (s)
 tfmax = 100        # max frame time (s)
@@ -151,20 +211,26 @@ ENF, effReadnoise, frameTime, dQE = fl.compute_frame_time_and_dqe(
     isPhotonCounting, QE_Data, DET_CBE_Data,
     lam, mpix, cphrate.total
 )
+print(f"Calculated Frame Time: {frameTime:.2f} s")
+print(f"Differential Quantum Efficiency (dQE): {dQE:.3f}")
+print(f"Excess Noise Factor (ENF): {ENF:.2f}")
 
 
 # Account for the additional noise due to RDI through penalty factors
-rdi_penalty = fl.rdi_noise_penalty(target, inBandFlux0_sum, starFlux, scenarioDF)
+# These factors increase the variance from different noise sources.
+rdi_penalty = fl.rdi_noise_penalty(target, inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_tTar)
 k_sp  = rdi_penalty["k_sp"]
 k_det = rdi_penalty["k_det"]
 k_lzo = rdi_penalty["k_lzo"]
 k_ezo = rdi_penalty["k_ezo"]
 
 # === Detector noise calculation ===
+# Calculate various detector noise rates.
 detNoiseRate = fl.detector_noise_rates(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCounting)
 
-
-k_pp = scenarioDF.at['pp_Factor_CBE', 'Latest']
+# === Variance and SNR Calculation ===
+# Compute electron rates for variance calculation and residual speckle rate.
+k_pp = config['instrument']['pp_Factor_CBE']
 eRatesCore, residSpecRate = fl.compute_variance_rates(
     cphrate=cphrate,
     dQE=dQE,
@@ -183,13 +249,18 @@ eRatesCore, residSpecRate = fl.compute_variance_rates(
     Acol=Acol
 )
 
-SNRdesired = 5.0
+SNRdesired = 6.0
 timeToSNR, criticalSNR = fl.compute_tsnr(SNRdesired, eRatesCore, residSpecRate)
 
 print(f"\nTarget SNR = {SNRdesired:.1f} \nCritical SNR = {criticalSNR:.2f}")
 print(f"Time to SNR = {timeToSNR/uc.hour:.2f} hours")
 
+if timeToSNR > usableTinteg:
+    print(f"Warning: Time to SNR ({timeToSNR/uc.hour:.2f} hrs) exceeds usable integration time ({usableTinteg/uc.hour:.2f} hrs).")
+elif timeToSNR <= 0:
+    print(f"Warning: Calculated Time to SNR is not positive ({timeToSNR/uc.hour:.2f} hrs). Check input parameters and intermediate calculations.")
+else:
+    print("Observation is feasible within the allocated time.")
 
-
-
+print(f"Run completed at: {datetime.now()}")
 
