@@ -5,7 +5,7 @@ import math
 from datetime import datetime
 from loadXLcol import loadXLcol
 import unitsConstants as uc
-import library as fl
+import cginoiselib as fl
 from dataclasses import dataclass, asdict
 import numpy as np
 
