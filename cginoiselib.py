@@ -15,12 +15,43 @@ from loadCSVrow import loadCSVrow
 from dataclasses import dataclass, asdict
 
 def open_folder(*folders):
-    """Opens a directory and returns a dictionary of file paths keyed by filenames."""
+    """
+    Constructs a path to a subfolder and returns a dictionary of file paths within it.
+
+    Args:
+        *folders: A sequence of folder names to be joined to the current working directory.
+
+    Returns:
+        A dictionary where keys are filenames (str) and values are Path objects
+        for each file in the specified directory.
+    """
     filenamedir = Path(os.getcwd())
     folder = Path(filenamedir, *folders)
     return {file.name: file for file in folder.iterdir() if file.is_file()}
 
 def getScenFileNames(config):
+    """
+    Retrieves a list of full file paths for scenario-specific CSV data files.
+
+    The function constructs paths based on filenames specified in the 'config'
+    dictionary, organized under subfolders within an "EBcsvData" directory.
+
+    Args:
+        config: A dictionary containing a 'Filenames' key, which itself is a
+                dictionary mapping descriptive keys (e.g., 'CoronagraphFile')
+                to base filenames (without .csv extension).
+
+    Returns:
+        A list of strings, where each string is the absolute path to a CSV file.
+        The order of files in the list corresponds to:
+        1. CoronagraphFile
+        2. QE_Curve_file
+        3. DetModelFile_CBE
+        4. StrayLightFRNfile
+        5. ThroughputFile
+        6. CalibrationFile
+        7. ContrastStabilityFile
+    """
     filenamedir = Path(os.getcwd())
     filenameList = []
     ffList = [
@@ -44,6 +75,24 @@ def loadCSVs(filenameList):
 
 
 def workingAnglePars(CG_Data, CS_Data):
+    """
+    Determines the effective Inner Working Angle (IWA) and Outer Working Angle (OWA).
+
+    These are derived from coronagraph (CG_Data) and contrast stability (CS_Data)
+    data. The IWA is the maximum of the individual IWAs, and the OWA is the
+    minimum of the individual OWAs. Angles are typically in units of lambda/D.
+
+    Args:
+        CG_Data: Loaded CSV data for coronagraph performance. Expected to have a
+                 DataFrame `df` with an 'rlamD' column.
+        CS_Data: Loaded CSV data for contrast stability. Expected to have a
+                 DataFrame `df` with an 'r_lam_D' column.
+
+    Returns:
+        A tuple (IWA, OWA), where:
+            IWA (float): The maximum effective inner working angle (lambda/D).
+            OWA (float): The minimum effective outer working angle (lambda/D).
+    """
     IWAc = CG_Data.df.at[0, 'rlamD']
     IWAs = CS_Data.df.at[0, 'r_lam_D']
     OWAc = CG_Data.df['rlamD'].iloc[-1]
@@ -52,6 +101,35 @@ def workingAnglePars(CG_Data, CS_Data):
 
 
 def contrastStabilityPars(CSprefix, planetWA, CS_Data):
+    """
+    Extracts contrast stability parameters from CSV data at a given planet working angle.
+
+    Parameters are scaled by `uc.ppb` (parts per billion).
+
+    Args:
+        CSprefix: A string prefix (e.g., "MCBE_") used to identify relevant
+                  column names in the CS_Data DataFrame.
+        planetWA: The planet's working angle in units of lambda/D.
+        CS_Data: Loaded CSV data for contrast stability. Expected to have a
+                 DataFrame `df` with an 'r_lam_D' column and other columns
+                 prefixed by `CSprefix`.
+
+    Returns:
+        A tuple containing:
+            selDeltaC (float): Selected delta contrast (quadrature sum of stabilities).
+            rawContrast (float): Average raw contrast at the planetWA.
+            SystematicCont (float): Systematic contrast contribution.
+            initStatRawContrast (float): Initial static raw contrast.
+            rawContrast (float): (Repeated) Average raw contrast.
+            IntContStab (float): Internal contrast stability.
+            ExtContStab (float): External contrast stability.
+        All returned contrast values are in parts per billion (ppb).
+
+    Raises:
+        IndexError: If the contrast stability file format is not as expected
+                    (based on column count and names).
+    """
+    
     tol = 0.05
     indCS = CS_Data.df['r_lam_D'].searchsorted(planetWA + tol) - 1
 
@@ -83,7 +161,35 @@ def contrastStabilityPars(CSprefix, planetWA, CS_Data):
 def getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, CGdesignWL, omegaPSF):
     FocalPlaneAtt = loadCSVrow(Path(os.getcwd(), 'EBcsvData', 'CONST_SNR_FPattributes.csv'))
     AmiciPar = loadCSVrow(Path(os.getcwd(), 'EBcsvData', 'CONST_Amici_parameters.csv'))
+    """
+    Calculates focal plane attributes based on the operational mode (Imaging or Spectroscopy).
 
+    Loads 'CONST_SNR_FPattributes.csv' and 'CONST_Amici_parameters.csv' internally.
+
+    Args:
+        opMode: Operational mode, either "SPEC" (Spectroscopy) or "IMG" (Imaging).
+        config: Scenario configuration dictionary, used for 'R_required' in SPEC mode.
+        DET_CBE_Data: Loaded CSV data for detector model (Current Best Estimate - CBE).
+                      Expected to have a DataFrame `df` with 'PixelSize_m'.
+        lam: Observation wavelength in meters.
+        bandWidth: Fractional spectral bandwidth (delta_lambda / lambda).
+        DPM: Diameter of the primary mirror in meters.
+        CGdesignWL: Coronagraph design wavelength in meters.
+        omegaPSF: Solid angle of the PSF core in arcsec^2 (used in IMG mode).
+
+    Returns:
+        A tuple containing:
+            f_SR (float): Spectral resolution factor (1/ (R * bandWidth) for SPEC, 1 for IMG).
+            CritLam (float): Critical wavelength (Nyquist sampling) in meters.
+            detPixSize_m (float): Detector pixel size in meters.
+            mpix (float): Number of pixels in the photometric aperture (PSF core region).
+            pixPlateSc (float): Pixel plate scale in milliarcseconds/pixel.
+
+    Raises:
+        Exception: If `opMode` is not "SPEC" or "IMG".
+        KeyError: If required keys are missing in `config` for SPEC mode.
+    """
+    
     detPixSize_m = DET_CBE_Data.df.at[0, 'PixelSize_m']
 
     if opMode == "SPEC":
@@ -125,6 +231,24 @@ def getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, C
 
 @dataclass
 class CGParameters:
+    """
+    Holds parameters related to coronagraph performance.
+
+    Attributes:
+        CGcoreThruput (float): Core throughput of the coronagraph system.
+        PSFpeakI (float): Peak intensity of the coronagraphic PSF (normalized).
+        omegaPSF (float): Solid angle of the PSF core in arcsec^2.
+        CGintSamp (float): Sampling interval in lambda/D units from coronagraph data.
+        CGradius_arcsec (float): Radius associated with the working angle in arcseconds.
+        CGdesignWL (float): Design wavelength of the coronagraph in meters.
+        CGintmpix (float): Number of pixels within the integration area,
+                           derived from omegaPSF and sampling.
+        CG_PSFarea_sqlamD (float): Area of the PSF core in (lambda/D)^2.
+        CGintensity (float): Intensity value from coronagraph data at the working angle.
+        CG_occulter_transmission (float): Transmission of the coronagraph occulter.
+        CGcontrast (float): Raw contrast achieved by the coronagraph at the working angle.
+        CGtauPol (float): Polarization throughput factor (default is 1.0).
+    """
     CGcoreThruput: float
     PSFpeakI: float
     omegaPSF: float
@@ -141,6 +265,22 @@ class CGParameters:
 
 @dataclass
 class Target:
+    """
+    Represents an astrophysical target (star-planet system).
+
+    Attributes:
+        v_mag (float): V-band magnitude of the host star.
+        dist_pc (float): Distance to the system in parsecs.
+        specType (str): Spectral type of the host star (e.g., 'G2V').
+        phaseAng_deg (float): Orbital phase angle of the planet in degrees.
+        sma_AU (float): Semi-major axis of the planet's orbit in Astronomical Units.
+        radius_Rjup (float): Radius of the planet in Jupiter radii.
+        geomAlb_ag (float): Geometric albedo of the planet (unused if `albedo` is set).
+        exoZodi (float): Level of exo-zodiacal dust, in units of "zodis"
+                         (multiples of Solar System zodi brightness).
+        albedo (float, optional): Effective Lambertian albedo of the planet.
+                                  If None, can be calculated from flux ratio.
+    """
     v_mag: float
     dist_pc: float
     specType: str
@@ -153,23 +293,78 @@ class Target:
 
     @staticmethod
     def phaseAng_to_sep(sma_AU, dist_pc, phaseAng_deg):
+        """Converts orbital parameters to on-sky separation.
+
+        Args:
+            sma_AU: Semi-major axis in AU.
+            dist_pc: Distance to target in parsecs.
+            phaseAng_deg: Planet's orbital phase angle in degrees.
+
+        Returns:
+            Projected separation in milliarcseconds (mas).
+        """
         sep_mas = ((sma_AU * uc.AU * math.sin(math.radians(phaseAng_deg))) / (dist_pc * uc.pc)) / uc.mas
         return sep_mas
 
     @staticmethod
     def fluxRatio_to_deltaMag(fluxRatio):
+        """Converts a flux ratio to a difference in magnitudes.
+
+        Args:
+            fluxRatio: Ratio of planet flux to star flux.
+
+        Returns:
+            Difference in magnitudes (delta_mag).
+        """
         return (-2.5) * math.log10(fluxRatio)
 
     @staticmethod
     def deltaMag_to_fluxRatio(deltaMag):
+        """Converts a difference in magnitudes to a flux ratio.
+
+        Args:
+            deltaMag: Difference in magnitudes.
+
+        Returns:
+            Ratio of fluxes.
+        """
         return 10 ** (-0.4 * deltaMag)
 
     @staticmethod
     def fluxRatio_SMA_rad_to_albedo(fluxRatio, sma_AU, radius_Rjup):
+        """Calculates planet albedo from flux ratio, SMA, and radius.
+
+        Assumes Lambertian sphere phase function at 90 deg phase angle (phi(alpha)=1/pi)
+        is implicitly handled if fluxRatio is defined appropriately.
+        More generally, flux_ratio = albedo * (R_planet / SMA)^2 * phase_function.
+        This function solves for albedo assuming phase_function is incorporated or is 1.
+
+        Args:
+            fluxRatio: Planet-to-star flux ratio.
+            sma_AU: Semi-major axis in AU.
+            radius_Rjup: Planet radius in Jupiter radii.
+
+        Returns:
+            The geometric albedo (Ag) if flux ratio definition is appropriate,
+            or an effective Lambertian albedo.
+        """
         return fluxRatio * (sma_AU * uc.AU / (radius_Rjup * uc.jupiterRadius)) ** 2
 
 
 def coronagraphParameters(cg_df, planetWA, DPM):
+    """
+    Extracts and calculates coronagraph parameters for a given working angle.
+
+    Args:
+        cg_df: Pandas DataFrame containing coronagraph performance data, indexed
+               by working angle ('rlamD'). Expected columns include 'coreThruput',
+               'PSFpeak', 'area_sq_arcsec', 'r_as', 'I', 'occTrans', 'contrast'.
+        planetWA: The planet's working angle in lambda/D.
+        DPM: Diameter of the primary mirror in meters.
+
+    Returns:
+        A CGParameters dataclass instance populated with calculated values.
+    """
     CGtauPol = 1
     indWA = cg_df[(cg_df.rlamD <= planetWA)]['rlamD'].idxmax()
 
@@ -203,6 +398,24 @@ def coronagraphParameters(cg_df, planetWA, DPM):
     )
 
 def getSpectra(target, lam, bandWidth):
+    """
+    Calculates stellar flux based on spectral type, V-magnitude, wavelength, and bandwidth.
+
+    Loads 'SPECTRA_ALL_BPGS.csv' which contains spectral data for various star types.
+
+    Args:
+        target: A Target dataclass instance with `specType` and `v_mag`.
+        lam: Central observation wavelength in meters.
+        bandWidth: Fractional bandwidth (delta_lambda/lambda).
+
+    Returns:
+        A tuple containing:
+            inBandFlux0_sum (pd.Series): Integrated zero-magnitude flux (ph/s/m^2)
+                                         over the band for all spectral types in the CSV.
+            inBandZeroMagFlux (float): Integrated zero-magnitude flux (ph/s/m^2)
+                                       for the target's spectral type.
+            starFlux (float): Actual flux from the target star (ph/s/m^2) at Earth.
+    """
     spectra_path = Path(os.getcwd(), 'EBcsvData', 'Spectra', 'SPECTRA_ALL_BPGS.csv')
     SPECTRA_Data = loadCSVrow(spectra_path)
 
@@ -222,11 +435,36 @@ def getSpectra(target, lam, bandWidth):
 
 @dataclass
 class DetNoiseRates:
+    """
+    Holds various detector noise rates.
+
+    Attributes:
+        dark (float): Dark current rate in electrons/pixel/second.
+        CIC (float): Clock-Induced Charge rate in electrons/pixel/second.
+        read (float): Read noise squared rate in (electrons/second)^2 / (pixel integrated area / s),
+                      effectively (electrons_rms/frame)^2 * (pixels_in_aperture / frame_time).
+                      This term is often directly added to variance.
+    """
     dark: float
     CIC: float
     read: float
 
 def detector_noise_rates(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCounting):
+    """
+    Calculates detector noise rates considering mission lifetime degradation.
+
+    Args:
+        DET_CBE_Data: Loaded CSV data for detector model. Expected DataFrame `df`
+                      with columns like 'DetEOL_mos', 'DarkBOM_e_per_pix_per_hr', etc.
+        monthsAtL2: Mission duration at L2 in months, for degradation calculation.
+        frameTime: Exposure time per frame in seconds.
+        mpix: Number of pixels in the photometric aperture.
+        isPhotonCounting: Boolean, True if operating in photon counting mode.
+
+    Returns:
+        A DetNoiseRates dataclass instance with calculated dark current, CIC,
+        and read noise rates.
+    """
     missionFraction = monthsAtL2 / DET_CBE_Data.df.at[0, 'DetEOL_mos']
     detDarkBOM = DET_CBE_Data.df.at[0, 'DarkBOM_e_per_pix_per_hr']
     detDarkEOM = DET_CBE_Data.df.at[0, 'DarkEOM_e_per_pix_per_hr']
@@ -260,10 +498,18 @@ def detector_noise_rates(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCoun
         read = read_noise_per_s
     )
 
-
-
 @dataclass
 class Throughput:
+    """
+    Holds various optical throughput components.
+
+    Attributes:
+        refl (float): Combined reflectivity/transmissivity of telescope optics (OTA, CGI).
+        filt (float): Filter throughput.
+        polr (float): Polarizer throughput.
+        core (float): Coronagraph core throughput (e.g., for planet light).
+        occt (float): Coronagraph occulter transmission (e.g., for starlight/zodi).
+    """
     refl: float
     filt: float
     polr: float
@@ -282,6 +528,9 @@ def compute_throughputs(THPT_Data, cg, ezdistrib="falloff"):
     Returns:
     - Throughput instance.
     - Dictionary with total throughputs: planet, speckle, local_zodi, exo_zodi
+    
+    Raises:
+        ValueError: If `ezdistrib` is not a recognized value.
     """
 
     # Select the appropriate distribution factor for exozodi
@@ -322,19 +571,28 @@ def compute_throughputs(THPT_Data, cg, ezdistrib="falloff"):
 def rdi_noise_penalty(target, inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_tTar,
                                RefStarSpecType='a0v', RefStarDist=10, RefStarVmag=3.0):
     """
-    Compute noise penalty factors for Reference Differential Imaging (RDI).
-    
-    Parameters:
-    - target: Target dataclass instance.
-    - inBandFlux0_sum: zero-magnitude flux per spectral type (Series).
-    - starFlux: target star flux.
-    - TimeonRefStar_tRef_per_tTar: timing info.
-    - RefStarSpecType: spectral type of the reference star (default 'a0v').
-    - RefStarDist: distance to the reference star in parsecs (default 10).
-    - RefStarVmag: V magnitude of the reference star (default 3.0).
-    
+    Computes noise penalty factors due to Reference Differential Imaging (RDI).
+
+    These factors (k_sp, k_det, k_lzo, k_ezo) quantify the increase in variance
+    for different noise components when using RDI.
+
+    Args:
+        target: Target dataclass instance for the science target.
+        inBandFlux0_sum: Pandas Series of integrated zero-magnitude flux (ph/s/m^2)
+                         indexed by spectral type.
+        starFlux: Flux of the science target star in ph/s/m^2.
+        TimeonRefStar_tRef_per_tTar: Ratio of time spent on reference star to
+                                     time spent on science target (t_ref / t_target).
+        RefStarSpecType: Spectral type of the reference star (default: 'a0v').
+        RefStarDist: Distance to the reference star in parsecs (default: 10 pc).
+        RefStarVmag: V-band magnitude of the reference star (default: 3.0).
+
     Returns:
-    - Dictionary of penalty factors: k_sp, k_det, k_lzo, k_ezo
+        A dictionary with RDI penalty factors:
+            k_sp (float): Penalty for speckle noise.
+            k_det (float): Penalty for detector noise.
+            k_lzo (float): Penalty for local zodiacal light noise.
+            k_ezo (float): Penalty for exo-zodiacal light noise.
     """
 
     RefStarinBandZeroMagFlux = inBandFlux0_sum.at[RefStarSpecType]
