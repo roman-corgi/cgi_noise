@@ -20,8 +20,7 @@ def open_folder(*folders):
     folder = Path(filenamedir, *folders)
     return {file.name: file for file in folder.iterdir() if file.is_file()}
 
-
-def getScenFileNames_DRM(scenarioData):
+def getScenFileNames_YML(config):
     filenamedir = Path(os.getcwd())
     filenameList = []
     ffList = [
@@ -34,7 +33,7 @@ def getScenFileNames_DRM(scenarioData):
         ('Cstability', 'ContrastStabilityFile')
     ]
     for folder, key in ffList:
-        name = scenarioData.loc[key, 'Latest'] + ".csv"
+        name = config['Filenames'][key] + ".csv"
         path = filenamedir / "EBcsvData" / folder / name
         filenameList.append(str(path))
     return filenameList
@@ -81,7 +80,7 @@ def contrastStabilityPars(CSprefix, planetWA, CS_Data):
     return selDeltaC, rawContrast, SystematicCont, initStatRawContrast, rawContrast, IntContStab, ExtContStab
 
 
-def getFocalPlaneAttributes(opMode, scenarioData, DET_CBE_Data, lam, bandWidth, DPM, CGdesignWL, omegaPSF):
+def getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, CGdesignWL, omegaPSF):
     FocalPlaneAtt = loadCSVrow(Path(os.getcwd(), 'EBcsvData', 'CONST_SNR_FPattributes.csv'))
     AmiciPar = loadCSVrow(Path(os.getcwd(), 'EBcsvData', 'CONST_Amici_parameters.csv'))
 
@@ -89,7 +88,7 @@ def getFocalPlaneAttributes(opMode, scenarioData, DET_CBE_Data, lam, bandWidth, 
 
     if opMode == "SPEC":
         try:
-            resolution = scenarioData.at['R_required', 'Latest']
+            resolution = config['instrument']['R_required'] #scenarioData.at['R_required', 'Latest']
             f_SR = 1 / (resolution * bandWidth)
         except:
             resolution = 0.0001

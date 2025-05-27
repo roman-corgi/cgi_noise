@@ -33,21 +33,21 @@ except yaml.YAMLError as e:
     print(f"Error parsing YAML: {e}")
     sys.exit(1)
  
-# Extract parameters from YAML
-target = config.get("target", {})
-targetName = target.get("name", None)  # Target title/description
-stellar_type = target.get("stellarType", None)  # Get stellar type
-absmag = float(target.get("absMag", None))
-exoSolar = float(target.get("exoSolar", None))
-exoZodiSurfBright = float(target.get("exoZodiMagas2"))
-locZodiSurfBright = float(target.get("locZodiMagas2"))
+# # Extract parameters from YAML
+# target = config.get("target", {})
+# targetName = target.get("name", None)  # Target title/description
+# stellar_type = target.get("stellarType", None)  # Get stellar type
+# absmag = float(target.get("absMag", None))
+# exoSolar = float(target.get("exoSolar", None))
+# exoZodiSurfBright = float(target.get("exoZodiMagas2"))
+# locZodiSurfBright = float(target.get("locZodiMagas2"))
 
 
 # === Constants ===
 DPM = 2.363 * uc.meter
-lam = scenarioDF.at['CenterLambda_nm', 'Latest'] * uc.nm
+lam = config['instrument']['wavelength']
 lamD = lam / DPM
-intTimeDutyFactor = scenarioDF.at['DutyFactor_CBE', 'Latest']
+intTimeDutyFactor = config['instrument']['dutyFactor'] # scenarioDF.at['DutyFactor_CBE', 'Latest']
 
 print(f"Wavelength: {lam / uc.nm} nm")
 print(f"Lambda/D: {lamD / uc.mas:.3f} mas")
@@ -84,7 +84,7 @@ print(f"Separation: {sep_mas:.0f} mas")
 print(f"Albedo: {target.albedo:.3f}")
 
 # === Load Required CSV Files ===
-filenameList = fl.getScenFileNames_DRM(scenarioDF)
+filenameList = fl.getScenFileNames_YML(config)
 CG_Data, QE_Data, DET_CBE_Data, STRAY_FRN_Data, THPT_Data, CAL_Data, CS_Data = fl.loadCSVs(filenameList)
 
 # === Planet Working Angle ===
@@ -112,11 +112,11 @@ print(f"Selected Delta Contrast: {selDeltaC:.3e}")
 cg = fl.coronagraphParameters(CG_Data.df, planetWA, DPM)
 
 # === Focal Plane Setup ===
-opMode = scenarioDF.at['OPMODE_IMG_SPEC', 'Latest']
-bandWidth = scenarioDF.at['BW', 'Latest']
+opMode = config['instrument']['OpMode'] #scenarioDF.at['OPMODE_IMG_SPEC', 'Latest']
+bandWidth = config['instrument']['bandwidth'] #scenarioDF.at['BW', 'Latest']
 f_SR, CritLam, detPixSize_m, mpix, pixPlateSc = fl.getFocalPlaneAttributes(
     opMode,
-    scenarioDF,
+    config,
     DET_CBE_Data,
     lam,
     bandWidth,
