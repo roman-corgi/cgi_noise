@@ -19,6 +19,7 @@ instrument:
   CGtype: 'HLC'
   OpMode: 'IMG' # IMG or SPEC for imaging or spectroscopy
   dutyFactor: 1.0
+  R_required: NaN
   thp_ref: 0.406 # throughput loss for reflections and transmissions
   thp_pol: 1.0 # throughput loss for polarization
   thp_fil: 0.9 # filter throughput within its passband
