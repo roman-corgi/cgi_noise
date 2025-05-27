@@ -20,7 +20,7 @@ def open_folder(*folders):
     folder = Path(filenamedir, *folders)
     return {file.name: file for file in folder.iterdir() if file.is_file()}
 
-def getScenFileNames_YML(config):
+def getScenFileNames(config):
     filenamedir = Path(os.getcwd())
     filenameList = []
     ffList = [
@@ -342,7 +342,7 @@ def rdi_noise_penalty(target, inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_
     RefStarFlux = RefStarinBandZeroMagFlux * (10 ** (-0.4 * RefStarVmag))
     BrightnessRatio = RefStarFlux / starFlux
 
-    timeRatio = TimeonRefStar_tRef_per_tTar #scenarioDF.at['TimeonRefStar_tRef_per_tTar', 'Latest']
+    timeRatio = TimeonRefStar_tRef_per_tTar
     betaRDI = 1 / (BrightnessRatio * timeRatio)
 
     k_sp = 1 + betaRDI
@@ -484,7 +484,7 @@ def compute_tsnr(SNRdesired, eRatesCore, residSpecRate):
 
     denom = eRatesCore.planet**2 - SNRdesired**2 * residSpecRate**2
     if denom <= 0:
-        raise ValueError("SNR condition is not achievable with given residual speckle level.")
+        raise ValueError("compute_tsnr: SNR condition is not achievable with given residual speckle level.")
 
     timeToSNR = SNRdesired**2 * eRatesCore.total / denom
     criticalSNR = eRatesCore.planet / residSpecRate

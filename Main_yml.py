@@ -3,10 +3,9 @@
 import os
 import math
 from datetime import datetime
-from loadXLcol import loadXLcol
 import unitsConstants as uc
 import cginoiselib as fl
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 import numpy as np
 import yaml
 import sys
@@ -19,10 +18,6 @@ print(f"Run started at: {current_datetime}")
 # === Scenario Selection ===
 scenario_filename = 'SCEN_IMG_NFOV_B1_HLC.yaml'
 scenFolder = fl.open_folder("EBcsvData", "Scenarios")
-# scenarioDF = loadXLcol(scenFolder[scenario_filename], 30).df
-# scenario = scenarioDF.at['Scenario', 'Latest']
-
-# Load YAML config
 try:
     with open(scenFolder[scenario_filename], "r") as file:
         config = yaml.safe_load(file)
@@ -32,22 +27,12 @@ except FileNotFoundError:
 except yaml.YAMLError as e:
     print(f"Error parsing YAML: {e}")
     sys.exit(1)
- 
-# # Extract parameters from YAML
-# target = config.get("target", {})
-# targetName = target.get("name", None)  # Target title/description
-# stellar_type = target.get("stellarType", None)  # Get stellar type
-# absmag = float(target.get("absMag", None))
-# exoSolar = float(target.get("exoSolar", None))
-# exoZodiSurfBright = float(target.get("exoZodiMagas2"))
-# locZodiSurfBright = float(target.get("locZodiMagas2"))
-
 
 # === Constants ===
 DPM = 2.363 * uc.meter
 lam = config['instrument']['wavelength']
 lamD = lam / DPM
-intTimeDutyFactor = config['instrument']['dutyFactor'] # scenarioDF.at['DutyFactor_CBE', 'Latest']
+intTimeDutyFactor = config['instrument']['dutyFactor']
 
 print(f"Wavelength: {lam / uc.nm} nm")
 print(f"Lambda/D: {lamD / uc.mas:.3f} mas")
@@ -58,7 +43,7 @@ target = fl.Target(
     dist_pc=13.8,
     specType='g0v',
     phaseAng_deg=65,
-    sma_AU=5,
+    sma_AU=3.197,
     radius_Rjup=1,
     geomAlb_ag=0.3,
     exoZodi=1,
@@ -69,7 +54,6 @@ allocatedTime = 100 * uc.hour
 monthsAtL2 = 21
 frameTime = 10.0 * uc.second
 isPhotonCounting = True  # or False, depending on the mode
-
 
 
 usableTinteg = intTimeDutyFactor * allocatedTime
@@ -84,7 +68,7 @@ print(f"Separation: {sep_mas:.0f} mas")
 print(f"Albedo: {target.albedo:.3f}")
 
 # === Load Required CSV Files ===
-filenameList = fl.getScenFileNames_YML(config)
+filenameList = fl.getScenFileNames(config)
 CG_Data, QE_Data, DET_CBE_Data, STRAY_FRN_Data, THPT_Data, CAL_Data, CS_Data = fl.loadCSVs(filenameList)
 
 # === Planet Working Angle ===
@@ -112,8 +96,8 @@ print(f"Selected Delta Contrast: {selDeltaC:.3e}")
 cg = fl.coronagraphParameters(CG_Data.df, planetWA, DPM)
 
 # === Focal Plane Setup ===
-opMode = config['instrument']['OpMode'] #scenarioDF.at['OPMODE_IMG_SPEC', 'Latest']
-bandWidth = config['instrument']['bandwidth'] #scenarioDF.at['BW', 'Latest']
+opMode = config['instrument']['OpMode']
+bandWidth = config['instrument']['bandwidth']
 f_SR, CritLam, detPixSize_m, mpix, pixPlateSc = fl.getFocalPlaneAttributes(
     opMode,
     config,
@@ -137,8 +121,8 @@ print(f"Planet Flux = {planetFlux:.3e} ph/s/m^2")
 
 # === Background Zodi and Speckle Flux ===
 
-magLocalZodi = config['instrument']['LocZodi_magas2'] #scenarioDF.at['LocZodi_magas2','Latest']
-magExoZodi_1AU = config['instrument']['ExoZodi_magas2'] #scenarioDF.at['ExoZodi_magas2','Latest']
+magLocalZodi = config['instrument']['LocZodi_magas2']
+magExoZodi_1AU = config['instrument']['ExoZodi_magas2']
 absMag = target.v_mag - 5 * math.log10(target.dist_pc / 10)
 
 locZodiAngFlux = inBandZeroMagFlux * 10 ** (-0.4 * magLocalZodi)
@@ -189,7 +173,7 @@ k_ezo = rdi_penalty["k_ezo"]
 detNoiseRate = fl.detector_noise_rates(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCounting)
 
 
-k_pp = config['instrument']['pp_Factor_CBE'] #scenarioDF.at['pp_Factor_CBE', 'Latest']
+k_pp = config['instrument']['pp_Factor_CBE']
 eRatesCore, residSpecRate = fl.compute_variance_rates(
     cphrate=cphrate,
     dQE=dQE,
@@ -208,7 +192,7 @@ eRatesCore, residSpecRate = fl.compute_variance_rates(
     Acol=Acol
 )
 
-SNRdesired = 5.0
+SNRdesired = 6.0
 timeToSNR, criticalSNR = fl.compute_tsnr(SNRdesired, eRatesCore, residSpecRate)
 
 print(f"\nTarget SNR = {SNRdesired:.1f} \nCritical SNR = {criticalSNR:.2f}")
