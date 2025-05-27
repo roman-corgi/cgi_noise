@@ -8,6 +8,8 @@ import unitsConstants as uc
 import cginoiselib as fl
 from dataclasses import dataclass, asdict
 import numpy as np
+import yaml
+import sys
 
 current_dir = os.getcwd()
 print(f"Working directory: {current_dir}")
@@ -15,10 +17,31 @@ current_datetime = datetime.now()
 print(f"Run started at: {current_datetime}")
 
 # === Scenario Selection ===
-scenario_filename = 'SCEN_IMG_NFOV_B1_HLC.xlsx'
+scenario_filename = 'SCEN_IMG_NFOV_B1_HLC.yaml'
 scenFolder = fl.open_folder("EBcsvData", "Scenarios")
-scenarioDF = loadXLcol(scenFolder[scenario_filename], 30).df
-scenario = scenarioDF.at['Scenario', 'Latest']
+# scenarioDF = loadXLcol(scenFolder[scenario_filename], 30).df
+# scenario = scenarioDF.at['Scenario', 'Latest']
+
+# Load YAML config
+try:
+    with open(scenFolder[scenario_filename], "r") as file:
+        config = yaml.safe_load(file)
+except FileNotFoundError:
+    print("Error: config.yaml not found!")
+    sys.exit(1)
+except yaml.YAMLError as e:
+    print(f"Error parsing YAML: {e}")
+    sys.exit(1)
+ 
+# Extract parameters from YAML
+target = config.get("target", {})
+targetName = target.get("name", None)  # Target title/description
+stellar_type = target.get("stellarType", None)  # Get stellar type
+absmag = float(target.get("absMag", None))
+exoSolar = float(target.get("exoSolar", None))
+exoZodiSurfBright = float(target.get("exoZodiMagas2"))
+locZodiSurfBright = float(target.get("locZodiMagas2"))
+
 
 # === Constants ===
 DPM = 2.363 * uc.meter
@@ -46,6 +69,7 @@ allocatedTime = 100 * uc.hour
 monthsAtL2 = 21
 frameTime = 10.0 * uc.second
 isPhotonCounting = True  # or False, depending on the mode
+
 
 
 usableTinteg = intTimeDutyFactor * allocatedTime
