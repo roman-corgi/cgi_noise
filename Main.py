@@ -116,7 +116,7 @@ print(f"Planet Working Angle: {planetWA:.2f} λ/D")
 
 # === Contrast Stability Parameters ===
 # Determine contrast stability parameters from loaded data.
-CSprefix = 'MCBE_'
+CSprefix = 'ICBE_'
 selDeltaC, rawContrast, SystematicCont, initStatRawContrast, \
     rawContrast, IntContStab, ExtContStab = fl.contrastStabilityPars(CSprefix, planetWA, CS_Data)
 
@@ -204,7 +204,7 @@ cphrate = corePhotonRates()
 # === Frame Time and dQE Calculation ===
 # Determine the optimal frame time and detector's differential Quantum Efficiency (dQE).
 desiredRate = 0.1  # e-/pix/frame
-tfmin = 1          # min frame time (s)
+tfmin = 3          # min frame time (s)
 tfmax = 100        # max frame time (s)
 
 ENF, effReadnoise, frameTime, dQE = fl.compute_frame_time_and_dqe(
