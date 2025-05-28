@@ -145,6 +145,10 @@ f_SR, CritLam, detPixSize_m, mpix, pixPlateSc = fl.getFocalPlaneAttributes(
     cg.omegaPSF
 )
 
+# === Sensor Inner Workings ===
+# Caveats concerning the capabilities of the sensor being used
+det_FWCserial = config['detector']['FWC_serial']
+
 # === Star Flux ===
 # Calculate the flux from the host star.
 inBandFlux0_sum, inBandZeroMagFlux, starFlux = fl.getSpectra(target, lam, bandWidth)
@@ -209,7 +213,8 @@ tfmax = 100        # max frame time (s)
 ENF, effReadnoise, frameTime, dQE = fl.compute_frame_time_and_dqe(
     desiredRate, tfmin, tfmax,
     isPhotonCounting, QE_Data, DET_CBE_Data,
-    lam, mpix, cphrate.total
+    lam, mpix, cphrate.total, 
+    det_FWCserial
 )
 print(f"Calculated Frame Time: {frameTime:.2f} s")
 print(f"Differential Quantum Efficiency (dQE): {dQE:.3f}")

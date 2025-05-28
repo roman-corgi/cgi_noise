@@ -95,8 +95,18 @@ def workingAnglePars(CG_Data, CS_Data):
     """
     IWAc = CG_Data.df.at[0, 'rlamD']
     IWAs = CS_Data.df.at[0, 'r_lam_D']
-    OWAc = CG_Data.df['rlamD'].iloc[-1]
-    OWAs = CS_Data.df['r_lam_D'].iloc[-1]
+    
+    if len(CG_Data.df) > 1:
+        OWAc = CG_Data.df['rlamD'].iloc[-1]
+    else:
+        OWAc = CG_Data.df['rlamD'].iloc[0] + 3
+    
+    if len(CS_Data.df) > 1:
+        OWAs = CS_Data.df['r_lam_D'].iloc[-1]
+    else:
+        OWAs = CS_Data.df['r_lam_D'].iloc[0] + 3
+    
+    # OWAs = CS_Data.df['r_lam_D'].iloc[-1]
     return max(IWAs, IWAc), min(OWAs, OWAc)
 
 
@@ -619,7 +629,7 @@ def rdi_noise_penalty(target, inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_
 def compute_frame_time_and_dqe(
     desiredRate, tfmin, tfmax,
     isPhotonCounting, QE_Data, DET_CBE_Data,
-    lam, mpix, cphrate_total
+    lam, mpix, cphrate_total, det_FWCserial
 ):
     """
     Compute frame time and effective quantum efficiency (dQE) based on photon counting mode.
@@ -645,7 +655,6 @@ def compute_frame_time_and_dqe(
     det_EMgain = DET_CBE_Data.df.at[0, 'EMGain']
     det_readnoise = DET_CBE_Data.df.at[0, 'ReadNoise_e']
     det_PCthresh = DET_CBE_Data.df.at[0, 'PCThresh_nsigma']
-    det_FWCserial = 90000
 
     if isPhotonCounting:
         ENF = 1.0
