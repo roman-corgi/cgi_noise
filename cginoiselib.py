@@ -556,7 +556,7 @@ def compute_throughputs(THPT_Data, cg, ezdistrib="falloff"):
     )
 
     planetThroughput  = thput.refl * thput.filt * thput.polr * thput.core
-    speckleThroughput = thput.refl * thput.filt * thput.polr * thput.polr
+    speckleThroughput = thput.refl * thput.filt * thput.polr
     locZodiThroughput = thput.refl * thput.filt * thput.polr * thput.occt
     exoZodiThroughput = locZodiThroughput * distFactor
 
