@@ -88,10 +88,7 @@ isPhotonCounting = True  # or False, depending on the mode
 usableTinteg = intTimeDutyFactor * allocatedTime
 
 sep_mas = target.phaseAng_to_sep(target.sma_AU, target.dist_pc, target.phaseAng_deg)
-target.albedo = target.fluxRatio_SMA_rad_to_albedo(
-    fl.Target.deltaMag_to_fluxRatio(
-        fl.Target.fluxRatio_to_deltaMag(5e-9)
-    ), target.sma_AU, target.radius_Rjup)
+target.albedo = target.albedo_from_geomAlbedo(target.phaseAng_deg, target.geomAlb_ag)
 
 print(f"Separation: {sep_mas:.0f} mas")
 print(f"Albedo: {target.albedo:.3f}")

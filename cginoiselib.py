@@ -13,6 +13,7 @@ import unitsConstants as uc
 import math
 from loadCSVrow import loadCSVrow
 from dataclasses import dataclass, asdict
+import numpy as np
 
 def open_folder(*folders):
     """
@@ -315,7 +316,12 @@ class Target:
         """
         sep_mas = ((sma_AU * uc.AU * math.sin(math.radians(phaseAng_deg))) / (dist_pc * uc.pc)) / uc.mas
         return sep_mas
-
+    
+    @staticmethod
+    def albedo_from_geomAlbedo(phaseAng_deg,geomAlb_ag):
+        alpha = phaseAng_deg * uc.deg
+        return 1/np.pi * (np.sin(alpha) + (np.pi - alpha)*np.cos(alpha))*geomAlb_ag
+    
     @staticmethod
     def fluxRatio_to_deltaMag(fluxRatio):
         """Converts a flux ratio to a difference in magnitudes.
