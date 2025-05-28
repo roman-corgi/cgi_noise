@@ -42,7 +42,7 @@ print(f"Run started at: {current_datetime}")
 
 # === Scenario Selection ===
 # Load scenario configuration from a YAML file.
-scenario_filename = 'SCEN_IMG_NFOV_B1_HLC.yaml'
+scenario_filename = 'SCEN_IMG_NFOV_B1_HLC_TVAC.yaml'
 scenFolder = fl.open_folder("EBcsvData", "Scenarios")
 try:
     with open(scenFolder[scenario_filename], "r") as file:
@@ -67,13 +67,13 @@ print(f"Lambda/D: {lamD / uc.mas:.3f} mas")
 # === Define Host Star and Planet ===
 # Uses the Target class from cginoiselib to define the exoplanetary system.
 target = fl.Target(
-    v_mag=5.05,
-    dist_pc=13.8,
+    v_mag=5.0,
+    dist_pc=10.0,
     specType='g0v',
     phaseAng_deg=65,
-    sma_AU=3.197,
-    radius_Rjup=1,
-    geomAlb_ag=0.3,
+    sma_AU=4.1535,
+    radius_Rjup=5.6211,
+    geomAlb_ag=0.44765,
     exoZodi=1,
 )
 
@@ -249,7 +249,7 @@ eRatesCore, residSpecRate = fl.compute_variance_rates(
     Acol=Acol
 )
 
-SNRdesired = 6.0
+SNRdesired = 5.0
 timeToSNR, criticalSNR = fl.compute_tsnr(SNRdesired, eRatesCore, residSpecRate)
 
 print(f"\nTarget SNR = {SNRdesired:.1f} \nCritical SNR = {criticalSNR:.2f}")

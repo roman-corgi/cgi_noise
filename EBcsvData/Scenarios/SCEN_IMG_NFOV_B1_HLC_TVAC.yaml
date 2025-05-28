@@ -1,0 +1,29 @@
+# Configuration parameters
+Filenames:
+  Scenario: 'SCEN_IMG_NFOV_B1_HLC_TVAC' # This scenario as a whole
+  CoronagraphFile: 'CGPERF_HLC_20190210br'
+  FidPlanet: 'Threshold Companion'
+  QE_Curve_file: 'QE_e2v_Spec'
+  DetModelFile_CBE: 'DET_CBE_TVAC_240720'
+  ContrastStabilityFile: 'CS_TVAC_NFIM_240425bdk'
+  ThroughputFile: 'THPT_EB_NFB1_240725'
+  CalibrationFile: 'CAL_EB_TTR_241227'
+  MultiPurposeMode: 'EB_IMG_NF_B1'
+  StrayLightFRNfile: 'STRAY_lightforFRN210315'
+  
+instrument:
+  Diam: 2.363
+  Acol: 4.385 # total collecting area, meters^2
+  wavelength: 575.0e-9 
+  bandwidth: 0.1
+  CGtype: 'HLC'
+  OpMode: 'IMG' # IMG or SPEC for imaging or spectroscopy
+  dutyFactor: 0.7
+  R_required: NaN
+  LocZodi_magas2: 23
+  ExoZodi_magas2: 22
+  RefStar_SpectralType: 'a0v'
+  RefStar_V_mag_CBE: 2.26
+  pp_Factor_CBE: 2.0
+
+  
