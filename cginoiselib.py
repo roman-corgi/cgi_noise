@@ -667,12 +667,12 @@ def compute_frame_time_and_dqe(
     det_EMgain = DET_CBE_Data.df.at[0, 'EMGain']
     det_readnoise = DET_CBE_Data.df.at[0, 'ReadNoise_e']
     det_PCthresh = DET_CBE_Data.df.at[0, 'PCThresh_nsigma']
-    
-    det_FWCserial = 90000
-    CTI = 0.0000553
-    nTransfers = 1600
-    
-    CTE = (1-CTI)**nTransfers
+    det_FWCser = DET_CBE_Data.df.at[0, 'FWCserial']
+    det_FWCimg = DET_CBE_Data.df.at[0, 'FWCimage']
+    CTI_clocking = DET_CBE_Data.df.at[0, 'CTI_clk']
+    nTransfers = DET_CBE_Data.df.at[0, 'CTI_xfers']
+
+    CTE = (1-CTI_clocking)**nTransfers
 
     if isPhotonCounting:
         ENF = 1.0
@@ -687,7 +687,7 @@ def compute_frame_time_and_dqe(
         effReadnoise = det_readnoise / det_EMgain
         Nsigma = 3
         NEE = Nsigma * ENF * det_EMgain
-        y_crit = ((NEE**2 + 2 * det_FWCserial) - math.sqrt(NEE**4 + 4 * NEE**2 * det_FWCserial)) / 2
+        y_crit = ((NEE**2 + 2 * det_FWCser) - math.sqrt(NEE**4 + 4 * NEE**2 * det_FWCser)) / 2
         tfr_crit = y_crit / (cphrate_total * det_QE / mpix)
         frameTime = min(tfmax, max(tfmin, math.floor(tfr_crit)))
         dQE = det_QE * CTE
