@@ -562,7 +562,7 @@ def compute_throughputs(THPT_Data, cg, ezdistrib="falloff"):
     )
 
     planetThroughput  = thput.refl * thput.filt * thput.polr * thput.core
-    speckleThroughput = thput.refl * thput.filt * thput.polr * thput.polr
+    speckleThroughput = thput.refl * thput.filt * thput.polr 
     locZodiThroughput = thput.refl * thput.filt * thput.polr * thput.occt
     exoZodiThroughput = locZodiThroughput * distFactor
 
@@ -651,7 +651,12 @@ def compute_frame_time_and_dqe(
     det_EMgain = DET_CBE_Data.df.at[0, 'EMGain']
     det_readnoise = DET_CBE_Data.df.at[0, 'ReadNoise_e']
     det_PCthresh = DET_CBE_Data.df.at[0, 'PCThresh_nsigma']
+    
     det_FWCserial = 90000
+    CTI = 0.0000553
+    nTransfers = 1600
+    
+    CTE = (1-CTI)**nTransfers
 
     if isPhotonCounting:
         ENF = 1.0
@@ -660,7 +665,7 @@ def compute_frame_time_and_dqe(
         approxPerPixelPerFrame = frameTime * cphrate_total * det_QE / mpix
         eff_coincidence = (1 - math.exp(-approxPerPixelPerFrame)) / approxPerPixelPerFrame if approxPerPixelPerFrame > 0 else 1.0
         eff_thresholding = math.exp(-det_PCthresh * det_readnoise / det_EMgain)
-        dQE = det_QE * eff_coincidence * eff_thresholding
+        dQE = det_QE * eff_coincidence * eff_thresholding * CTE
     else:
         ENF = math.sqrt(2)
         effReadnoise = det_readnoise / det_EMgain
@@ -669,7 +674,7 @@ def compute_frame_time_and_dqe(
         y_crit = ((NEE**2 + 2 * det_FWCserial) - math.sqrt(NEE**4 + 4 * NEE**2 * det_FWCserial)) / 2
         tfr_crit = y_crit / (cphrate_total * det_QE / mpix)
         frameTime = min(tfmax, max(tfmin, math.floor(tfr_crit)))
-        dQE = det_QE
+        dQE = det_QE * CTE
 
     return ENF, effReadnoise, frameTime, dQE
 

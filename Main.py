@@ -34,6 +34,7 @@ from dataclasses import dataclass
 import numpy as np
 import yaml
 import sys
+from prettytable import PrettyTable
 
 current_dir = os.getcwd()
 print(f"Working directory: {current_dir}")
@@ -71,7 +72,7 @@ target = fl.Target(
     dist_pc=13.8,
     specType='g0v',
     phaseAng_deg=65,
-    sma_AU=3.197,
+    sma_AU=5,
     radius_Rjup=1,
     geomAlb_ag=0.3,
     exoZodi=1,
@@ -105,6 +106,15 @@ CG_Data, QE_Data, DET_CBE_Data, STRAY_FRN_Data, THPT_Data, CAL_Data, CS_Data = f
 # Calculate the planet's working angle in units of lambda/D.
 IWA, OWA = fl.workingAnglePars(CG_Data, CS_Data) # Inner and Outer Working Angles
 planetWA = sep_mas * uc.mas / lamD  # Planet working angle
+
+# Create a table with column headers
+table = PrettyTable()
+table.field_names = ['planet WA', 'phase, deg', 'dist, pc', 'sma, AU', 'sep, mas', 'lam/D, mas', "IWA", "OWA"]
+table.add_row( [f'{planetWA:.2f}',f'{target.phaseAng_deg:.2f}', f"{target.dist_pc:.2f}", f'{target.sma_AU:.2f}', f'{sep_mas:.2f}', f'{lamD/uc.mas:.2f}', f'{IWA:.2f}',f'{OWA:.2f}' ] )
+print(table)
+
+
+
 tolerance = 0.05  # Tolerance for working angle adjustment
 
 # Adjust planetWA to be exactly IWA or OWA if it's very close, or raise error if outside range.

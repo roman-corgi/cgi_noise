@@ -106,3 +106,4 @@ venv.bak/
 
 .*.swp
 .DS_Store
+EBcsvData/Scenarios/~*.*
