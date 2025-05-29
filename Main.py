@@ -43,7 +43,7 @@ print(f"Run started at: {current_datetime}")
 
 # === Scenario Selection ===
 # Load scenario configuration from a YAML file.
-scenario_filename = 'SCEN_IMG_NFOV_B1_HLC.yaml'
+scenario_filename = 'SCEN_IMG_NFOV_B1_HLC_TVAC.yaml'
 scenFolder = fl.open_folder("EBcsvData", "Scenarios")
 try:
     with open(scenFolder[scenario_filename], "r") as file:
@@ -68,13 +68,13 @@ print(f"Lambda/D: {lamD / uc.mas:.3f} mas")
 # === Define Host Star and Planet ===
 # Uses the Target class from cginoiselib to define the exoplanetary system.
 target = fl.Target(
-    v_mag=5.05,
-    dist_pc=13.8,
+    v_mag=5.0,
+    dist_pc=10.0,
     specType='g0v',
     phaseAng_deg=65,
-    sma_AU=5,
-    radius_Rjup=1,
-    geomAlb_ag=0.3,
+    sma_AU=4.1535,
+    radius_Rjup=5.6211,
+    geomAlb_ag=0.44765,
     exoZodi=1,
 )
 
@@ -89,10 +89,7 @@ isPhotonCounting = True  # or False, depending on the mode
 usableTinteg = intTimeDutyFactor * allocatedTime
 
 sep_mas = target.phaseAng_to_sep(target.sma_AU, target.dist_pc, target.phaseAng_deg)
-target.albedo = target.fluxRatio_SMA_rad_to_albedo(
-    fl.Target.deltaMag_to_fluxRatio(
-        fl.Target.fluxRatio_to_deltaMag(5e-9)
-    ), target.sma_AU, target.radius_Rjup)
+target.albedo = target.albedo_from_geomAlbedo(target.phaseAng_deg, target.geomAlb_ag)
 
 print(f"Separation: {sep_mas:.0f} mas")
 print(f"Albedo: {target.albedo:.3f}")
@@ -129,7 +126,7 @@ print(f"Planet Working Angle: {planetWA:.2f} λ/D")
 
 # === Contrast Stability Parameters ===
 # Determine contrast stability parameters from loaded data.
-CSprefix = 'MCBE_'
+CSprefix = 'ICBE_'
 selDeltaC, rawContrast, SystematicCont, initStatRawContrast, \
     rawContrast, IntContStab, ExtContStab = fl.contrastStabilityPars(CSprefix, planetWA, CS_Data)
 
@@ -154,6 +151,10 @@ f_SR, CritLam, detPixSize_m, mpix, pixPlateSc = fl.getFocalPlaneAttributes(
     cg.CGdesignWL,
     cg.omegaPSF
 )
+
+# === Sensor Inner Workings ===
+# Caveats concerning the capabilities of the sensor being used
+det_FWCserial = config['detector']['FWC_serial']
 
 # === Star Flux ===
 # Calculate the flux from the host star.
@@ -213,13 +214,14 @@ cphrate = corePhotonRates()
 # === Frame Time and dQE Calculation ===
 # Determine the optimal frame time and detector's differential Quantum Efficiency (dQE).
 desiredRate = 0.1  # e-/pix/frame
-tfmin = 1          # min frame time (s)
+tfmin = 3          # min frame time (s)
 tfmax = 100        # max frame time (s)
 
 ENF, effReadnoise, frameTime, dQE = fl.compute_frame_time_and_dqe(
     desiredRate, tfmin, tfmax,
     isPhotonCounting, QE_Data, DET_CBE_Data,
-    lam, mpix, cphrate.total
+    lam, mpix, cphrate.total, 
+    det_FWCserial
 )
 print(f"Calculated Frame Time: {frameTime:.2f} s")
 print(f"Differential Quantum Efficiency (dQE): {dQE:.3f}")
@@ -259,7 +261,7 @@ eRatesCore, residSpecRate = fl.compute_variance_rates(
     Acol=Acol
 )
 
-SNRdesired = 6.0
+SNRdesired = 5.0
 timeToSNR, criticalSNR = fl.compute_tsnr(SNRdesired, eRatesCore, residSpecRate)
 
 print(f"\nTarget SNR = {SNRdesired:.1f} \nCritical SNR = {criticalSNR:.2f}")

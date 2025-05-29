@@ -19,6 +19,7 @@ try:
 except ModuleNotFoundError:
     from .loadCSVrow import loadCSVrow
 from dataclasses import dataclass, asdict
+import numpy as np
 
 def open_folder(*folders):
     """
@@ -101,8 +102,18 @@ def workingAnglePars(CG_Data, CS_Data):
     """
     IWAc = CG_Data.df.at[0, 'rlamD']
     IWAs = CS_Data.df.at[0, 'r_lam_D']
-    OWAc = CG_Data.df['rlamD'].iloc[-1]
-    OWAs = CS_Data.df['r_lam_D'].iloc[-1]
+    
+    if len(CG_Data.df) > 1:
+        OWAc = CG_Data.df['rlamD'].iloc[-1]
+    else:
+        OWAc = CG_Data.df['rlamD'].iloc[0] + 3
+    
+    if len(CS_Data.df) > 1:
+        OWAs = CS_Data.df['r_lam_D'].iloc[-1]
+    else:
+        OWAs = CS_Data.df['r_lam_D'].iloc[0] + 3
+    
+    # OWAs = CS_Data.df['r_lam_D'].iloc[-1]
     return max(IWAs, IWAc), min(OWAs, OWAc)
 
 
@@ -311,7 +322,12 @@ class Target:
         """
         sep_mas = ((sma_AU * uc.AU * math.sin(math.radians(phaseAng_deg))) / (dist_pc * uc.pc)) / uc.mas
         return sep_mas
-
+    
+    @staticmethod
+    def albedo_from_geomAlbedo(phaseAng_deg,geomAlb_ag):
+        alpha = phaseAng_deg * uc.deg
+        return 1/np.pi * (np.sin(alpha) + (np.pi - alpha)*np.cos(alpha))*geomAlb_ag
+    
     @staticmethod
     def fluxRatio_to_deltaMag(fluxRatio):
         """Converts a flux ratio to a difference in magnitudes.
@@ -625,7 +641,7 @@ def rdi_noise_penalty(target, inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_
 def compute_frame_time_and_dqe(
     desiredRate, tfmin, tfmax,
     isPhotonCounting, QE_Data, DET_CBE_Data,
-    lam, mpix, cphrate_total
+    lam, mpix, cphrate_total, det_FWCserial
 ):
     """
     Compute frame time and effective quantum efficiency (dQE) based on photon counting mode.
