@@ -4,14 +4,20 @@ Library of core functions for the EB performance modeling pipeline.
 This module provides structured access to scenario loading, throughput computation,
 optical and detector models, noise variance calculations, and astrophysical fluxes.
 All units are assumed to follow SI unless otherwise noted, and helper constants
-are provided in the 'unitsConstants' module. 
+are provided in the 'unitsConstants' module.
 """
 from dataclasses import dataclass
 from pathlib import Path
 import os
-import unitsConstants as uc
+try:
+    import unitsConstants as uc
+except ModuleNotFoundError:
+    from . import unitsConstants as uc
 import math
-from loadCSVrow import loadCSVrow
+try:
+    from loadCSVrow import loadCSVrow
+except ModuleNotFoundError:
+    from .loadCSVrow import loadCSVrow
 from dataclasses import dataclass, asdict
 
 def open_folder(*folders):
@@ -129,7 +135,7 @@ def contrastStabilityPars(CSprefix, planetWA, CS_Data):
         IndexError: If the contrast stability file format is not as expected
                     (based on column count and names).
     """
-    
+
     tol = 0.05
     indCS = CS_Data.df['r_lam_D'].searchsorted(planetWA + tol) - 1
 
@@ -189,7 +195,7 @@ def getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, C
         Exception: If `opMode` is not "SPEC" or "IMG".
         KeyError: If required keys are missing in `config` for SPEC mode.
     """
-    
+
     detPixSize_m = DET_CBE_Data.df.at[0, 'PixelSize_m']
 
     if opMode == "SPEC":
@@ -528,7 +534,7 @@ def compute_throughputs(THPT_Data, cg, ezdistrib="falloff"):
     Returns:
     - Throughput instance.
     - Dictionary with total throughputs: planet, speckle, local_zodi, exo_zodi
-    
+
     Raises:
         ValueError: If `ezdistrib` is not a recognized value.
     """
