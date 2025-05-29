@@ -28,4 +28,5 @@ instrument:
 
 detector:
   FWC_serial: 90000
-  
+  CTI_clocking: 0.0000553
+  CTI_transfers: 1600
