@@ -72,7 +72,7 @@ target = fl.Target(
     dist_pc=10.0,
     specType='g0v',
     phaseAng_deg=65,
-    sma_AU=4.1535,
+    sma_AU=4.1536,
     radius_Rjup=5.6211,
     geomAlb_ag=0.44765,
     exoZodi=1,
@@ -191,6 +191,28 @@ exoZodiThroughput = throughput_rates["exo_zodi"]
 # Unobscured Collecting Aperture Area (obscuration accounted for separately in throughputs)
 Acol = (np.pi / 4.0) * DPM**2
 
+# stray light contribution
+# scenario = 'EB IMG NF Band 1'
+scenario = 'Threshold IMG NF B1'
+perfLevel = 'CBE'
+stray_ph_s_mm2 = fl.getStrayLightfromfile(scenario,perfLevel,STRAY_FRN_Data)
+stray_ph_s_pix = stray_ph_s_mm2 * (1/uc.mm**2) * detPixSize_m**2
+
+
+# Account for the additional noise due to RDI through penalty factors
+# These factors increase the variance from different noise sources.
+
+RefStarSpecType='a0v', 
+RefStarVmag=2.26
+
+rdi_penalty = fl.rdi_noise_penalty(target, inBandFlux0_sum, starFlux, \
+                                   TimeonRefStar_tRef_per_tTar, RefStarSpecType, RefStarVmag   )
+k_sp  = rdi_penalty["k_sp"]
+k_det = rdi_penalty["k_det"]
+k_lzo = rdi_penalty["k_lzo"]
+k_ezo = rdi_penalty["k_ezo"]
+
+
 @dataclass
 class corePhotonRates:
     """
@@ -207,7 +229,8 @@ class corePhotonRates:
     speckle: float = starFlux * rawContrast * cg.PSFpeakI * cg.CGintmpix * speckleThroughput * Acol 
     locZodi: float = locZodiAngFlux * cg.omegaPSF * locZodiThroughput * Acol 
     exoZodi: float = exoZodiAngFlux * cg.omegaPSF * exoZodiThroughput * Acol  
-    total:   float = planet + speckle + locZodi + exoZodi
+    straylt: float = stray_ph_s_pix * mpix 
+    total:   float = planet + speckle + locZodi + exoZodi + straylt
 cphrate = corePhotonRates()
 
 
@@ -218,7 +241,7 @@ tfmin = 3          # min frame time (s)
 tfmax = 100        # max frame time (s)
 
 ENF, effReadnoise, frameTime, dQE = fl.compute_frame_time_and_dqe(
-    desiredRate, tfmin, tfmax,
+    desiredRate, tfmin, tfmax, 
     isPhotonCounting, QE_Data, DET_CBE_Data,
     lam, mpix, cphrate.total, 
     det_FWCserial
@@ -228,17 +251,10 @@ print(f"Differential Quantum Efficiency (dQE): {dQE:.3f}")
 print(f"Excess Noise Factor (ENF): {ENF:.2f}")
 
 
-# Account for the additional noise due to RDI through penalty factors
-# These factors increase the variance from different noise sources.
-rdi_penalty = fl.rdi_noise_penalty(target, inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_tTar)
-k_sp  = rdi_penalty["k_sp"]
-k_det = rdi_penalty["k_det"]
-k_lzo = rdi_penalty["k_lzo"]
-k_ezo = rdi_penalty["k_ezo"]
-
 # === Detector noise calculation ===
 # Calculate various detector noise rates.
 detNoiseRate = fl.detector_noise_rates(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCounting)
+
 
 # === Variance and SNR Calculation ===
 # Compute electron rates for variance calculation and residual speckle rate.

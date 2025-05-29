@@ -388,7 +388,7 @@ def coronagraphParameters(cg_df, planetWA, DPM):
         A CGParameters dataclass instance populated with calculated values.
     """
     CGtauPol = 1
-    indWA = cg_df[(cg_df.rlamD <= planetWA)]['rlamD'].idxmax()
+    indWA = cg_df[(cg_df.rlamD <= planetWA)]['rlamD'].idxmax(axis=0)
 
     CGcoreThruput = cg_df.loc[indWA, 'coreThruput'] * CGtauPol
     PSFpeakI = cg_df.loc[indWA, 'PSFpeak'] * CGtauPol
@@ -454,6 +454,25 @@ def getSpectra(target, lam, bandWidth):
     starFlux = inBandZeroMagFlux * 10 ** (-0.4 * target.v_mag)
 
     return inBandFlux0_sum, inBandZeroMagFlux, starFlux
+
+def getStrayLightfromfile(scenario,perfLevel,STRAY_FRN_Data):
+    # rowID = STRAY_FRN_Data.df.loc[STRAY_FRN_Data.df['PerfLevel']==perfLevel].index[0]
+    rowID = STRAY_FRN_Data.df.loc[STRAY_FRN_Data.df['PerfLevel']==perfLevel].index[0]
+    #scenario = scenarioData.at['Scenario','Latest']
+    try:
+        strayLight = STRAY_FRN_Data.df.at[rowID,scenario]
+    except:
+        #print(scenario)
+        scenario = scenario.replace('DRM','EB')
+        #print(scenario)
+        try:
+            strayLight = STRAY_FRN_Data.df.at[rowID,scenario]
+        except:
+            raise Exception('Stray needs help')
+            strayLight = None
+    #print(f'strayLight = {strayLight}')
+    return strayLight
+
 
 @dataclass
 class DetNoiseRates:
@@ -590,8 +609,7 @@ def compute_throughputs(THPT_Data, cg, ezdistrib="falloff"):
     }
 
 
-def rdi_noise_penalty(target, inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_tTar,
-                               RefStarSpecType='a0v', RefStarDist=10, RefStarVmag=3.0):
+def rdi_noise_penalty(target, inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_tTar, RefStarSpecType, RefStarVmag):
     """
     Computes noise penalty factors due to Reference Differential Imaging (RDI).
 
@@ -618,7 +636,6 @@ def rdi_noise_penalty(target, inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_
     """
 
     RefStarinBandZeroMagFlux = inBandFlux0_sum.at[RefStarSpecType]
-    RefStarAbsMag = RefStarVmag - 5 * math.log10(RefStarDist / 10)
     RefStarFlux = RefStarinBandZeroMagFlux * (10 ** (-0.4 * RefStarVmag))
     BrightnessRatio = RefStarFlux / starFlux
 
@@ -641,8 +658,7 @@ def rdi_noise_penalty(target, inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_
 def compute_frame_time_and_dqe(
     desiredRate, tfmin, tfmax,
     isPhotonCounting, QE_Data, DET_CBE_Data,
-    lam, mpix, cphrate_total, det_FWCserial
-):
+    lam, mpix, cphrate_total, det_FWCserial ):
     """
     Compute frame time and effective quantum efficiency (dQE) based on photon counting mode.
 
@@ -701,9 +717,11 @@ class VarianceRates:
     speckle: float
     locZodi: float
     exoZodi: float
+    straylt: float
     detDark: float
     detCIC: float
     detRead: float
+
 
     @property
     def total(self):
@@ -740,14 +758,16 @@ def compute_variance_rates(cphrate, dQE, ENF, detNoiseRate, k_sp, k_det, k_lzo, 
         speckleThroughput * Acol * dQE
     )
 
+    
     rates = VarianceRates(
-        planet  = ENF**2 * cphrate.planet * dQE,
+        planet  = ENF**2 * cphrate.planet  * dQE,
         speckle = ENF**2 * cphrate.speckle * dQE * k_sp,
         locZodi = ENF**2 * cphrate.locZodi * dQE * k_lzo,
         exoZodi = ENF**2 * cphrate.exoZodi * dQE * k_ezo,
-        detDark = ENF**2 * detNoiseRate.dark * k_det,
-        detCIC  = ENF**2 * detNoiseRate.CIC  * k_det,
-        detRead = detNoiseRate.read * k_det,
+        straylt = ENF**2 * cphrate.straylt * dQE * k_det,
+        detDark = ENF**2 * detNoiseRate.dark     * k_det,
+        detCIC  = ENF**2 * detNoiseRate.CIC      * k_det,
+        detRead =          detNoiseRate.read     * k_det,
     )
 
     return rates, residSpecRate
