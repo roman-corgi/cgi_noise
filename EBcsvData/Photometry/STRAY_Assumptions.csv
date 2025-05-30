@@ -1,5 +1,0 @@
-GCRfluxatL2_evts_per_sq_cm_per_sec,ph_per_rel_event_per_mm,diamCompBeam_mm,LuminescOpticDist_m,s_baffling_requirement,CompnStarLeakage,CompnStarMag_mag,setDesiredIncidentFlux_ph_per_sq_m_per_sec,B1_LuminescOpticThickness_mm,B3_LuminescOpticThickness_mm,B4_LuminescOpticThickness_mm,compStarSpecType
-5,250,5.7,0.26,0.001,6.00E-10,5,3500000,10,34,10,m5v
-"# 08/10/20 'LumRateperSolidAngle_ph_per_evt_per_2pi', calculated from ph_per_rel_event_per_mm/2pi",,,,,,,,,,,
-"# 08/10/20 'LuminescOpticArea_sq_cm', calculated from (pi/4)*((diamCompBeam_mm/10)^2)",,,,,,,,,,,
-# 11/03/20 added companion star spectral type,,,,,,,,,,,

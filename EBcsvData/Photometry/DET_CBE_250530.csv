@@ -1,12 +1,15 @@
 Generation,DetEOL_mos,PixelSize_m,PixelsAcross_pix,isPC_bool,PCThresh_nsigma,EMGain,ReadNoise_e,DarkBOM_e_per_pix_per_hr,DarkEOM_e_per_pix_per_hr,CICatGain1BOM_e_per_pix_per_fr,Gain1BOM,CICatGain2BOM_e_per_pix_per_fr,Gain2BOM,CICdegradationEOM,CTE_FluxSlope_per_log_of_flux_per_e_per_pix_per_s,CTE_dqeKneeFlux_e_per_pix_per_s,CRtailLen1_pix,CRtailGain1,CRtailLen2_pix,CRtailGain2,HotPixFrac,CTI_clk,CTI_xfers,FWCimage,FWCserial
-4,63,0.000013,1024,1,5,7000,133,3.6,6.6,0.0088,1,0.0088,8000,2,0.176826431,0.0222,30,1000,170,4000,0.00E+00,0.0000553,1600,78000,104000
+4,63,0.000013,1024,1,5,7800,165,3.5,6.5,0.006,1,0.006,8000,2,0.176826431,0.0222,30,1000,170,4000,0.00E+00,1.40E-05,1600,90000,105000
 "# generation 4 of detector csv parameters starts 10-24-22, and adds CTI from clocking and the relevant number of transfers",,,,,,,,,,,,,,,,,,,,,,,,,
+"# the present set of number imorove on the 240720 post-TVAC set by incorporating, where available, the lastest analysis as presented in the 2025 EMCCD Paper. ",,,,,,,,,,,,,,,,,,,,,,,,,
+"# The EMCCD paper is:  The Roman CGI Camera Systems: EXCAM and LOCAM, Nathan Bush et al., 2025 - Submitted to SPIE JATIS",,,,,,,,,,,,,,,,,,,,,,,,,
+# Brief description of the columns follows:,,,,,,,,,,,,,,,,,,,,,,,,,
 # detector end of life(months),,,,,,,,,,,,,,,,,,,,,,,,,
 # average pixel size (meters),,,,,,,,,,,,,,,,,,,,,,,,,
 # number of pixels across detector(pixels),,,,,,,,,,,,,,,,,,,,,,,,,
 "# photon counting (boolean) [1 if PC, 0 if analog]",,,,,,,,,,,,,,,,,,,,,,,,,
 # photon counting sigma threshold ,,,,,,,,,,,,,,,,,,,,,,,,,
-# electron multiplication gain factor (x),,,,,,,,,,,,,,,,,,,,,,,,,
+# maximum safe electron multiplication gain factor (x),,,,,,,,,,,,,,,,,,,,,,,,,
 # read noise sigma (electrons),,,,,,,,,,,,,,,,,,,,,,,,,
 "# dark current at temp, BOM, (electrons/pixel/hour), [Under current optimal running conditions this is achieved]",,,,,,,,,,,,,,,,,,,,,,,,,
 "# dark current after 5 yrs at L2, on avg., at given temp., (e/p/hr)",,,,,,,,,,,,,,,,,,,,,,,,,
@@ -25,4 +28,3 @@ Generation,DetEOL_mos,PixelSize_m,PixelsAcross_pix,isPC_bool,PCThresh_nsigma,EMG
 # CTI (charge transfer inefficiency) due to clocking - not traps,,,,,,,,,,,,,,,,,,,,,,,,,
 # CTI number of effective transfers with this inefficiency,,,,,,,,,,,,,,,,,,,,,,,,,
 # the CBE values that changed are described in this file,,,,,,,,,,,,,,,,,,,,,,,,,
-# 5/29 added two new cols at end for FWC  based on 2025 EMCCD paper,,,,,,,,,,,,,,,,,,,,,,,,,
