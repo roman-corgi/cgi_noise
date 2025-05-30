@@ -1,0 +1,7 @@
+r_lam_D,REQ_ExtContStab,REQ_IntContStab,REQ_AvgRawContrast,REQ_InitStatContrast,ICBE_ExtContStab,ICBE_IntContStab,ICBE_AvgRawContrast,ICBE_InitStatContrast,MCBE_ExtContStab,MCBE_IntContStab,MCBE_AvgRawContrast,MCBE_InitStatContrast
+6.5,0.845124013,1.1802651,25.4120672,25,0.402767142,0.268807163,2.484948317,2.3,0.101740269,0.138187457,5.055187464,5
+7.5,0.61914965,0.853735397,16.36291516,16,0.395023639,0.26417777,2.613173311,2.45,0.111037684,0.153395684,2.550834627,2.5
+8.5,0.581993701,0.782987232,16.31103063,16,0.356970904,0.25577764,2.382117082,2.22,0.064254182,0.103831959,1.148433085,1.1
+19,1.049774356,1.301386181,35.30272717,35,0.649674469,0.441332451,7.838522979,7.65,0.018943249,0.078224223,0.04814507,0
+"# from Brian Kern CBEs for Sep MMR with unity MUF, new REQs",,,,,,,,,,,,
+# new REQ allocations have been made consistent with 5 opens and 12 shorted pairs. CBE's same as 9/30--reflects 9/2020 era bench warping and DM thermal estimates and 10 hr stability numbers.,,,,,,,,,,,,
