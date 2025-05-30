@@ -43,7 +43,7 @@ print(f"Run started at: {current_datetime}")
 
 # === Scenario Selection ===
 # Load scenario configuration from a YAML file.
-scenario_filename = 'CON_IMG_NFB1_HLC.yml' #  'CON_SPEC_NFB3_SPC.yml' #  'REFERENCE_IMG_NFB1_HLC.yml' # 'CON_IMG_NFB1_HLC.yml' # 
+scenario_filename = 'OPT_IMG_NFB1_HLC.yml' #  'REFERENCE_IMG_NFB1_HLC.yml' # 'CON_IMG_WFB4_SPC.yml' #'CON_SPEC_NFB3_SPC.yml' #  'REFERENCE_IMG_NFB1_HLC.yml' # 'CON_IMG_NFB1_HLC.yml' #     'CON_IMG_NFB1_HLC.yml' # 
 scenFolder = fl.open_folder("EBcsvData", "Scenarios")
 try:
     with open(scenFolder[scenario_filename], "r") as file:
@@ -78,7 +78,7 @@ target = fl.Target(
     dist_pc=10.0,
     specType='g0v',
     phaseAng_deg=65,
-    sma_AU=4.1536,
+    sma_AU= 4.1536,
     radius_Rjup=5.6211,
     geomAlb_ag=0.44765,
     exoZodi=1,
