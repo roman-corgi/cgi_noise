@@ -3,7 +3,7 @@
 
 DataSpecification:
   ObservationCase: 'CON_SPEC_NFB3_SPC' # This scenario as a whole
-  Coronagraph_Data:  'CGPERF_SPC_NFB1_200617'
+  Coronagraph_Data:  'CGPERF_SPC_NFB3_200617'
   QE_Curve_Data: 'DET_QE_e2v_Spec'
   Detector_Data: 'DET_CBE_250530'
   ContrastStability_Data: 'CS_NFB3_SPC_201026'

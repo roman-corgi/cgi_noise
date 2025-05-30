@@ -43,7 +43,7 @@ print(f"Run started at: {current_datetime}")
 
 # === Scenario Selection ===
 # Load scenario configuration from a YAML file.
-scenario_filename = 'CON_SPEC_NFB3_SPC.yml' #  'REFERENCE_IMG_NFB1_HLC.yml' # 'CON_IMG_NFB1_HLC.yml' # 
+scenario_filename = 'CON_IMG_NFB1_HLC.yml' #  'CON_SPEC_NFB3_SPC.yml' #  'REFERENCE_IMG_NFB1_HLC.yml' # 'CON_IMG_NFB1_HLC.yml' # 
 scenFolder = fl.open_folder("EBcsvData", "Scenarios")
 try:
     with open(scenFolder[scenario_filename], "r") as file:
