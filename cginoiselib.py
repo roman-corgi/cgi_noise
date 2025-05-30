@@ -91,7 +91,7 @@ def workingAnglePars(CG_Data, CS_Data):
 
     Args:
         CG_Data: Loaded CSV data for coronagraph performance. Expected to have a
-                 DataFrame `df` with an 'rlamD' column.
+                 DataFrame `df` with an 'r_lam_D' column.
         CS_Data: Loaded CSV data for contrast stability. Expected to have a
                  DataFrame `df` with an 'r_lam_D' column.
 
@@ -100,13 +100,13 @@ def workingAnglePars(CG_Data, CS_Data):
             IWA (float): The maximum effective inner working angle (lambda/D).
             OWA (float): The minimum effective outer working angle (lambda/D).
     """
-    IWAc = CG_Data.df.at[0, 'rlamD']
+    IWAc = CG_Data.df.at[0, 'r_lam_D']
     IWAs = CS_Data.df.at[0, 'r_lam_D']
     
     if len(CG_Data.df) > 1:
-        OWAc = CG_Data.df['rlamD'].iloc[-1]
+        OWAc = CG_Data.df['r_lam_D'].iloc[-1]
     else:
-        OWAc = CG_Data.df['rlamD'].iloc[0] + 3
+        OWAc = CG_Data.df['r_lam_D'].iloc[0] + 3
     
     if len(CS_Data.df) > 1:
         OWAs = CS_Data.df['r_lam_D'].iloc[-1]
@@ -379,7 +379,7 @@ def coronagraphParameters(cg_df, config, planetWA, DPM):
 
     Args:
         cg_df: Pandas DataFrame containing coronagraph performance data, indexed
-               by working angle ('rlamD'). Expected columns include 'coreThruput',
+               by working angle ('r_lam_D'). Expected columns include 'coreThruput',
                'PSFpeak', 'area_sq_arcsec', 'r_as', 'I', 'occTrans', 'contrast'.
         planetWA: The planet's working angle in lambda/D.
         DPM: Diameter of the primary mirror in meters.
@@ -388,11 +388,11 @@ def coronagraphParameters(cg_df, config, planetWA, DPM):
         A CGParameters dataclass instance populated with calculated values.
     """
  
-    indWA = cg_df[(cg_df.rlamD <= planetWA)]['rlamD'].idxmax(axis=0)
+    indWA = cg_df[(cg_df.r_lam_D <= planetWA)]['r_lam_D'].idxmax(axis=0)
 
         
     omegaPSF = cg_df.loc[indWA, 'area_sq_arcsec']
-    CGintSamp = cg_df.loc[2, 'rlamD'] - cg_df.loc[1, 'rlamD']
+    CGintSamp = cg_df.loc[2, 'r_lam_D'] - cg_df.loc[1, 'r_lam_D']
     CGradius_arcsec = cg_df.at[indWA, 'r_as']
 
     CGdesignWL = DPM * cg_df.iloc[0, 1] * uc.arcsec / cg_df.iloc[0, 0]
