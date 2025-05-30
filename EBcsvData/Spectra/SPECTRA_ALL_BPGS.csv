@@ -802,6 +802,6 @@ Wavelength_m,E_ph_J,b3v,a0v,a5v,f5v,g0v,g5v,k0v,k5v,m0v,m5v
 1.05E-06,1.89E-19,4.21E-03,5.44E-03,7.03E-03,1.01E-02,1.21E-02,1.40E-02,2.02E-02,2.88E-02,4.30E-02,8.68E-02
 # Comments,,,,,,,,,,,
 Spectral Flux at 0 Magnitude for Specified Stellar Types (W / m^2 / m),,,,,,,,,,,
-Source: John Krist  -- From the,,,,,,,,,,,
-Bruzual-Persson-Gunn-Stryker Stellar Spectrophotometric Atlas,,,,,,,,,,,
+Source: From the,,,,,,,,,,,
+Stellar Spectrophotometric Atlas,,,,,,,,,,,
 which is (was?) distributed with the HST Synphot software.,,,,,,,,,,,

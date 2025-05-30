@@ -1,4 +1,4 @@
 Pupil_Transmission,REQ_OTAplusTCA,REQ_CGI,CBE_OTAplusTCA,CBE_CGI,CBE_Core
 0.816,0.751,0.32,0.808,0.5146,0.0463
 # Comments:,,,,,
-BN,5/27/2025,Per 240724 email from Gary Kuan and VCR for DNG 659882 L4 OptPerf Thput -- average NF B1 throughput CBE_CGI changed -- 5/27/25: BN added measued B1 Core Throughput,,,
+5/27/2025,Per 240724 email for DNG 659882 L4 OptPerf Thput -- average NF B1 throughput CBE_CGI changed -- 5/27/25: added measued B1 Core Throughput,,,,

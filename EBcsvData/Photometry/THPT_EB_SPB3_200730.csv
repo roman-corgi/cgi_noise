@@ -1,4 +1,4 @@
 Pupil_Transmission,REQ_OTAplusTCA,REQ_CGI,CBE_OTAplusTCA,CBE_CGI,CBE_Core
 0.816,0.751,0.23,0.808,0.317,0.0463
 # Comments:,,,,,
-BN,7/30/2020,Based on ECR as noted  in WFIRST_CR_208579_Step 2_Optical_Throughput v2.pptx -- -- 5/27/25: added measued B1 Core Throughput,,,
+7/30/2020,Based on ECR -- 5/27/25: added measued B1 Core Throughput,,,,
