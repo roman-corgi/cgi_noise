@@ -1,4 +1,4 @@
-rlamD,r_as,I,contrast,coreThruput,PSFpeak,area_sq_arcsec,occTrans
+r_lam_D,r_as,I,contrast,coreThruput,PSFpeak,area_sq_arcsec,occTrans
 3.1,0.197,2.87E-12,3.63E-09,0.0281,0.0008,0.0086,0.1326
 3.3,0.21,2.51E-12,2.73E-09,0.036,0.0009,0.0097,0.1537
 3.5,0.223,2.08E-12,2.02E-09,0.0361,0.001,0.0084,0.172
