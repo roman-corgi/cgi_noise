@@ -800,8 +800,5 @@ Wavelength_m,E_ph_J,b3v,a0v,a5v,f5v,g0v,g5v,k0v,k5v,m0v,m5v
 1.05E-06,1.90E-19,4.23E-03,5.48E-03,6.89E-03,1.01E-02,1.20E-02,1.28E-02,1.97E-02,2.83E-02,4.20E-02,9.06E-02
 1.05E-06,1.89E-19,4.22E-03,5.47E-03,6.96E-03,1.01E-02,1.21E-02,1.34E-02,2.00E-02,2.86E-02,4.25E-02,8.87E-02
 1.05E-06,1.89E-19,4.21E-03,5.44E-03,7.03E-03,1.01E-02,1.21E-02,1.40E-02,2.02E-02,2.88E-02,4.30E-02,8.68E-02
-# Comments,,,,,,,,,,,
-Spectral Flux at 0 Magnitude for Specified Stellar Types (W / m^2 / m),,,,,,,,,,,
-Source: From the,,,,,,,,,,,
-Stellar Spectrophotometric Atlas,,,,,,,,,,,
-which is (was?) distributed with the HST Synphot software.,,,,,,,,,,,
+# Spectral Flux at 0 Magnitude for Specified Stellar Types (W / m^2 / m),,,,,,,,,,,
+# Source: From the Stellar Spectrophotometric Atlas which is (was?) distributed with the HST Synphot software.,,,,,,,,,,,
