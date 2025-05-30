@@ -132,7 +132,7 @@ print(f"Planet Working Angle: {planetWA:.2f} λ/D")
 
 # === Contrast Stability Parameters ===
 # Determine contrast stability parameters from loaded data.
-CSprefix = 'ICBE_'
+
 selDeltaC, rawContrast, SystematicCont, initStatRawContrast, \
     rawContrast, IntContStab, ExtContStab = fl.contrastStabilityPars(CSprefix, planetWA, CS_Data)
 
