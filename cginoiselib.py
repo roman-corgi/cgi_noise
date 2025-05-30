@@ -117,19 +117,19 @@ def workingAnglePars(CG_Data, CS_Data):
     return max(IWAs, IWAc), min(OWAs, OWAc)
 
 
-def contrastStabilityPars(CSprefix, planetWA, CS_Data):
+def contrastStabilityPars(CS_Type, planetWA, CS_Data):
     """
     Extracts contrast stability parameters from CSV data at a given planet working angle.
 
     Parameters are scaled by `uc.ppb` (parts per billion).
 
     Args:
-        CSprefix: A string prefix (e.g., "MCBE_") used to identify relevant
+        CS_Type: A string prefix (e.g., "MCBE_") used to identify relevant
                   column names in the CS_Data DataFrame.
         planetWA: The planet's working angle in units of lambda/D.
         CS_Data: Loaded CSV data for contrast stability. Expected to have a
                  DataFrame `df` with an 'r_lam_D' column and other columns
-                 prefixed by `CSprefix`.
+                 prefixed by `CS_Type`.
 
     Returns:
         A tuple containing:
@@ -152,11 +152,11 @@ def contrastStabilityPars(CSprefix, planetWA, CS_Data):
 
     headers = CS_Data.df.columns.tolist()
     nCols = len(headers)
-    fnARC = CSprefix + "AvgRawContrast"
-    fnECS = CSprefix + "ExtContStab"
-    fnICS = CSprefix + "IntContStab"
-    fnSC  = CSprefix + "SystematicC"
-    fnISRC = CSprefix + "InitStatContrast"
+    fnARC = CS_Type + "_AvgRawContrast"
+    fnECS = CS_Type + "_ExtContStab"
+    fnICS = CS_Type + "_IntContStab"
+    fnSC  = CS_Type + "_SystematicC"
+    fnISRC = CS_Type + "_InitStatContrast"
 
     ExtContStab = CS_Data.df.at[indCS, fnECS] * uc.ppb
     IntContStab = CS_Data.df.at[indCS, fnICS] * uc.ppb

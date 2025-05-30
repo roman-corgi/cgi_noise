@@ -43,7 +43,7 @@ print(f"Run started at: {current_datetime}")
 
 # === Scenario Selection ===
 # Load scenario configuration from a YAML file.
-scenario_filename = 'CON_SPEC_NFB3_SPC.yml' #  'CON_IMG_NFB1_HLC.yml' # 'REFERENCE_IMG_NFB1_HLC.yml'
+scenario_filename = 'REFERENCE_IMG_NFB1_HLC.yml' # 'CON_IMG_NFB1_HLC.yml' # 'CON_SPEC_NFB3_SPC.yml' #  
 scenFolder = fl.open_folder("EBcsvData", "Scenarios")
 try:
     with open(scenFolder[scenario_filename], "r") as file:
@@ -104,6 +104,8 @@ print(f"Albedo: {target.albedo:.3f}")
 # Load various instrument and atmospheric data from CSV files.
 filenameList = fl.getScenFileNames(config)
 CG_Data, QE_Data, DET_CBE_Data, STRAY_FRN_Data, THPT_Data, CAL_Data, CS_Data = fl.loadCSVs(filenameList)
+CS_Type = config['DataSpecification']['CS_Type']
+
 
 # === Planet Working Angle ===
 # Calculate the planet's working angle in units of lambda/D.
@@ -134,7 +136,7 @@ print(f"Planet Working Angle: {planetWA:.2f} λ/D")
 # Determine contrast stability parameters from loaded data.
 
 selDeltaC, rawContrast, SystematicCont, initStatRawContrast, \
-    rawContrast, IntContStab, ExtContStab = fl.contrastStabilityPars(CSprefix, planetWA, CS_Data)
+    rawContrast, IntContStab, ExtContStab = fl.contrastStabilityPars(CS_Type, planetWA, CS_Data)
 
 print(f"Raw Contrast: {rawContrast:.3e}")
 print(f"Selected Delta Contrast: {selDeltaC:.3e}")
