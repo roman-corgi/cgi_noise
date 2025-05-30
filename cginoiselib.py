@@ -44,7 +44,7 @@ def getScenFileNames(config):
     dictionary, organized under subfolders within an "EBcsvData" directory.
 
     Args:
-        config: A dictionary containing a 'Filenames' key, which itself is a
+        config: A dictionary containing a 'DataSpecification' key, which itself is a
                 dictionary mapping descriptive keys (e.g., 'CoronagraphFile')
                 to base filenames (without .csv extension).
 
@@ -62,16 +62,16 @@ def getScenFileNames(config):
     filenamedir = Path(os.getcwd())
     filenameList = []
     ffList = [
-        ("Photometry", "CoronagraphFile"),
-        ('Photometry', 'QE_Curve_file'),
-        ('Photometry', 'DetModelFile_CBE'),
-        ('Photometry', 'StrayLightFRNfile'),
-        ('Photometry', 'ThroughputFile'),
-        ('Calibration', 'CalibrationFile'),
-        ('Cstability', 'ContrastStabilityFile')
+        ("Photometry", "Coronagraph_Data"),
+        ('Photometry', 'QE_Curve_Data'),
+        ('Photometry', 'Detector_Data'),
+        ('Photometry', 'StrayLight_Data'),
+        ('Photometry', 'Throughput_Data'),
+        ('Calibration', 'Calibration_Data'),
+        ('Cstability', 'ContrastStability_Data')
     ]
     for folder, key in ffList:
-        name = config['Filenames'][key] + ".csv"
+        name = config['DataSpecification'][key] + ".csv"
         path = filenamedir / "EBcsvData" / folder / name
         filenameList.append(str(path))
     return filenameList
@@ -403,7 +403,7 @@ def coronagraphParameters(cg_df, config, planetWA, DPM):
     CG_occulter_transmission = cg_df.at[indWA, 'occTrans']  
     CGcontrast = cg_df.loc[indWA, 'contrast']
 
-    ObservationType = config['Filenames']['ObservationCase']
+    ObservationType = config['DataSpecification']['ObservationCase']
     if ObservationType.find("IMG_NFB1_HLC") != -1:
         # for Kappa_c, Core Throughput use TVAC measurement based on HLC Band 1
         Kappa_c_meas = config['TVACmeasured']['Kappa_c_HLCB1']
@@ -765,16 +765,17 @@ def noiseVarianceRates(cphrate, QE, dQE, ENF, detNoiseRate, k_sp, k_det, k_lzo, 
         cg.PSFpeakI * cg.CGintmpix * speckleThroughput * Acol * dQE
     )
 
-    
+    # Note: the planet rate, following the EB model, differs from the others in using QE instead of dQE
+    # this is the image area QE instead of delivered QE: this practice will need to be revisited
     rates = VarianceRates(
-        planet  = ENF**2 * cphrate.planet  * QE,  # this is the image area QE as used in EB: will need to be revisited
-        speckle = ENF**2 * cphrate.speckle * dQE * k_sp,
-        locZodi = ENF**2 * cphrate.locZodi * dQE * k_lzo,
-        exoZodi = ENF**2 * cphrate.exoZodi * dQE * k_ezo,
-        straylt = ENF**2 * cphrate.straylt * dQE * k_det,
-        detDark = ENF**2 * detNoiseRate.dark     * k_det,
-        detCIC  = ENF**2 * detNoiseRate.CIC      * k_det,
-        detRead =          detNoiseRate.read     * k_det,
+        planet  = f_SR * ENF**2 * cphrate.planet  * QE,  
+        speckle = f_SR * ENF**2 * cphrate.speckle * dQE * k_sp,
+        locZodi = f_SR * ENF**2 * cphrate.locZodi * dQE * k_lzo,
+        exoZodi = f_SR * ENF**2 * cphrate.exoZodi * dQE * k_ezo,
+        straylt = f_SR * ENF**2 * cphrate.straylt * dQE * k_det,
+        detDark = f_SR * ENF**2 * detNoiseRate.dark     * k_det,
+        detCIC  = f_SR * ENF**2 * detNoiseRate.CIC      * k_det,
+        detRead = f_SR *          detNoiseRate.read     * k_det,
     )
 
     return rates, residSpecRate

@@ -1,0 +1,101 @@
+# Reference Case Configuration parameters
+# this case was used to test the code against the Roman CGI error budget
+
+DataSpecification:
+  ObservationCase: 'REFERENCE_IMG_NFB1_HLC' # This scenario as a whole
+  Coronagraph_Data: 'CGPERF_HLC_20190210br'
+  QE_Curve_Data: 'QE_e2v_Spec'
+  Detector_Data: 'DET_CBE_TVAC_240720'
+  ContrastStability_Data: 'CS_TVAC_NFIM_240425bdk'
+  Throughput_Data: 'THPT_NFB1_AUG_240725'
+  Calibration_Data: 'CAL_EB_TTR_241227'
+  StrayLight_Data: 'STRAY_lightforFRN210315'
+  
+instrument:
+  Diam: 2.363
+  Acol: 4.385 # total collecting area, meters^2
+  wavelength: 575.0e-9 
+  bandwidth: 0.1
+  CGtype: 'HLC'
+  OpMode: 'IMG' # IMG or SPEC for imaging or spectroscopy
+  dutyFactor: 0.7
+  R_required: NaN
+  LocZodi_magas2: 23
+  ExoZodi_magas2: 22
+  RefStar_SpectralType: 'a0v'
+  RefStar_V_mag_CBE: 2.26
+  pp_Factor_CBE: 2.0
+
+TVACmeasured:
+  Kappa_c_HLCB1: 1.38
+  CoreThput_HLCB1: 0.0463 
+  
+
+# Reference run:
+# 
+# Reloaded modules: unitsConstants, loadCSVrow, cginoiselib
+# Working directory: d:\repos\cgi_noise
+# Run started at: 2025-05-30 07:18:21.707292
+
+# Observation type: REFERENCE_IMG_NFB1_HLC
+# Central wavelength: 575.0 nm, with 10% BW
+
+# Lambda/D: 50.191 mas
+# Separation: 376 mas
+# Albedo: 0.250
+# +-----------+------------+----------+---------+----------+------------+------+------+
+# | planet WA | phase, deg | dist, pc | sma, AU | sep, mas | lam/D, mas | IWA  | OWA  |
+# +-----------+------------+----------+---------+----------+------------+------+------+
+# |    7.50   |   65.00    |  10.00   |   4.15  |  376.44  |   50.19    | 6.00 | 8.90 |
+# +-----------+------------+----------+---------+----------+------------+------+------+
+# Planet Working Angle: 7.50 λ/D
+# Raw Contrast: 3.506e-08
+# Selected Delta Contrast: 3.768e-09
+# Star Flux = 5.808e+07 ph/s/m^2
+# Planet Flux Ratio = 1.00e-07
+# Planet Flux = 5.808 ph/s/m^2
+# Calculated Frame Time: 3.00 s
+# QE in the image area: 0.845
+# Detected Quantum Efficiency (dQE): 0.605
+# Excess Noise Factor (ENF): 1.00
+# Core fraction used in the SNR region for mode REFERENCE_IMG_NFB1_HLC: f_SR: 1.000
+
+# Target SNR = 5.0 
+# Critical SNR = 38.46
+# Time to SNR = 231.2 seconds or 0.064 hours
+
+# Run completed at: 2025-05-30 07:18:21.798792
+
+# %runfile D:/Repos/CGI_Noise/Main.py --wdir
+# Reloaded modules: unitsConstants, loadCSVrow, cginoiselib
+# Working directory: d:\repos\cgi_noise
+# Run started at: 2025-05-30 07:22:02.604505
+
+# Observation type: REFERENCE_IMG_NFB1_HLC
+# Central wavelength: 575.0 nm, with 10% BW
+
+# Lambda/D: 50.191 mas
+# Separation: 376 mas
+# Albedo: 0.250
+# +-----------+------------+----------+---------+----------+------------+------+------+
+# | planet WA | phase, deg | dist, pc | sma, AU | sep, mas | lam/D, mas | IWA  | OWA  |
+# +-----------+------------+----------+---------+----------+------------+------+------+
+# |    7.50   |   65.00    |  10.00   |   4.15  |  376.44  |   50.19    | 6.00 | 8.90 |
+# +-----------+------------+----------+---------+----------+------------+------+------+
+# Planet Working Angle: 7.50 λ/D
+# Raw Contrast: 3.506e-08
+# Selected Delta Contrast: 3.768e-09
+# Star Flux = 5.808e+07 ph/s/m^2
+# Planet Flux Ratio = 1.00e-07
+# Planet Flux = 5.808 ph/s/m^2
+# Calculated Frame Time: 3.00 s
+# QE in the image area: 0.845
+# Detected Quantum Efficiency (dQE): 0.605
+# Excess Noise Factor (ENF): 1.00
+# Core fraction used in the SNR region for mode REFERENCE_IMG_NFB1_HLC: f_SR: 1.000
+
+# Target SNR = 5.0 
+# Critical SNR = 38.46
+# Time to SNR = 231.2 seconds or 0.064 hours
+
+# Run completed at: 2025-05-30 07:22:02.705131

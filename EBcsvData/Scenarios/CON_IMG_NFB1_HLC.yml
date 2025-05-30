@@ -1,0 +1,32 @@
+# Band 1 Direct Imaging with Hybrid Lyot Narrow Field of View Coronagraph
+# Conservative Case
+
+DataSpecification:
+  ObservationCase: 'CON_IMG_NFB1_HLC' # This scenario as a whole
+  Coronagraph_Data: 'CGPERF_HLC_20190210br'
+  QE_Curve_Data: 'QE_e2v_Spec'
+  Detector_Data: 'DET_CBE_TVAC_240720'
+  ContrastStability_Data: 'CS_TVAC_NFIM_240425bdk'
+  Throughput_Data: 'THPT_NFB1_AUG_240725'
+  Calibration_Data: 'CAL_EB_TTR_241227'
+  StrayLight_Data: 'STRAY_lightforFRN210315'
+  
+instrument:
+  Diam: 2.363
+  Acol: 4.385 # total collecting area, meters^2
+  wavelength: 575.0e-9 
+  bandwidth: 0.1
+  CGtype: 'HLC'
+  OpMode: 'IMG' # IMG or SPEC for imaging or spectroscopy
+  dutyFactor: 0.7
+  R_required: NaN
+  LocZodi_magas2: 23
+  ExoZodi_magas2: 22
+  RefStar_SpectralType: 'a0v'
+  RefStar_V_mag_CBE: 2.26
+  pp_Factor_CBE: 2.0
+
+TVACmeasured:
+  Kappa_c_HLCB1: 1.38
+  CoreThput_HLCB1: 0.0463 
+  

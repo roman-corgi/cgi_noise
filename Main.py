@@ -43,7 +43,7 @@ print(f"Run started at: {current_datetime}")
 
 # === Scenario Selection ===
 # Load scenario configuration from a YAML file.
-scenario_filename = 'SCEN_IMG_NFOV_B1_HLC_TVAC.yaml'
+scenario_filename = 'CON_SPEC_NFB3_SPC.yml' #  'CON_IMG_NFB1_HLC.yml' # 'REFERENCE_IMG_NFB1_HLC.yml'
 scenFolder = fl.open_folder("EBcsvData", "Scenarios")
 try:
     with open(scenFolder[scenario_filename], "r") as file:
@@ -55,8 +55,8 @@ except yaml.YAMLError as e:
     print(f"Error parsing YAML: {e}")
     sys.exit(1)
  
-ObservationType = config['Filenames']['ObservationCase']
-print(ObservationType)
+ObservationType = config['DataSpecification']['ObservationCase']
+print(f'\nObservation type: {ObservationType}')
 
 # === Constants ===
 # Define fundamental physical and instrument constants.
@@ -64,8 +64,10 @@ DPM = config['instrument']['Diam']
 lam = config['instrument']['wavelength']
 lamD = lam / DPM
 intTimeDutyFactor = config['instrument']['dutyFactor']
+opMode = config['instrument']['OpMode']
+bandWidth = config['instrument']['bandwidth']
 
-print(f"Wavelength: {lam / uc.nm} nm")
+print(f"Central wavelength: {lam / uc.nm} nm, with {bandWidth*100:.0f}% BW\n")
 print(f"Lambda/D: {lamD / uc.mas:.3f} mas")
 
 
@@ -143,8 +145,6 @@ cg = fl.coronagraphParameters(CG_Data.df, config, planetWA, DPM)
 
 # === Focal Plane Setup ===
 # Configure focal plane attributes based on operational mode and instrument config.
-opMode = config['instrument']['OpMode']
-bandWidth = config['instrument']['bandwidth']
 f_SR, CritLam, detPixSize_m, mpix, pixPlateSc = fl.getFocalPlaneAttributes(
     opMode,
     config,
@@ -167,7 +167,7 @@ TimeonRefStar_tRef_per_tTar = 0.25
 # Calculate the flux from the exoplanet.
 fluxRatio = target.albedo * (target.radius_Rjup * uc.jupiterRadius / (target.sma_AU * uc.AU)) ** 2
 planetFlux = fluxRatio * starFlux
-print(f"Planet Flux = {planetFlux:.3e} ph/s/m^2")
+print(f"Planet Flux Ratio = {fluxRatio:.2e}\nPlanet Flux = {planetFlux:.3f} ph/s/m^2")
 
 # === Background Zodi and Speckle Flux ===
 # Calculate flux from local and exo-zodiacal light, and speckles.
@@ -247,10 +247,10 @@ ENF, effReadnoise, frameTime, dQE, QE_img = fl.compute_frame_time_and_dqe(
     lam, mpix, cphrate.total
 )
 print(f"Calculated Frame Time: {frameTime:.2f} s")
-print(f'QE in the image area: {QE_img:.2f}')
+print(f'QE in the image area: {QE_img:.3f}')
 print(f"Detected Quantum Efficiency (dQE): {dQE:.3f}")
 print(f"Excess Noise Factor (ENF): {ENF:.2f}")
-
+print(f"Core fraction used in the SNR region for mode {ObservationType}: f_SR: {f_SR:.3f}")
 
 # === Detector noise calculation ===
 # Calculate various detector noise rates.
@@ -280,18 +280,16 @@ nvRatesCore, residSpecRate = fl.noiseVarianceRates(
 )
 
 SNRdesired = 5.0
-planetSignalRate = cphrate.planet  * dQE
+planetSignalRate = f_SR * cphrate.planet  * dQE
 timeToSNR, criticalSNR = fl.compute_tsnr(SNRdesired, planetSignalRate, nvRatesCore, residSpecRate)
 
 print(f"\nTarget SNR = {SNRdesired:.1f} \nCritical SNR = {criticalSNR:.2f}")
-print(f"Time to SNR = {timeToSNR/uc.hour:.3f} hours or {timeToSNR:.1f} seconds")
+print(f"Time to SNR = {timeToSNR:.1f} seconds or {timeToSNR/uc.hour:.3f} hours")
 
 if timeToSNR > usableTinteg:
     print(f"Warning: Time to SNR ({timeToSNR/uc.hour:.2f} hrs) exceeds usable integration time ({usableTinteg/uc.hour:.2f} hrs).")
 elif timeToSNR <= 0:
     print(f"Warning: Calculated Time to SNR is not positive ({timeToSNR/uc.hour:.2f} hrs). Check input parameters and intermediate calculations.")
-else:
-    print("Observation is feasible within the allocated time.")
 
-print(f"Run completed at: {datetime.now()}")
+print(f"\nRun completed at: {datetime.now()}")
 
