@@ -54,16 +54,20 @@ except FileNotFoundError:
 except yaml.YAMLError as e:
     print(f"Error parsing YAML: {e}")
     sys.exit(1)
+ 
+ObservationType = config['Filenames']['ObservationCase']
+print(ObservationType)
 
 # === Constants ===
 # Define fundamental physical and instrument constants.
-DPM = 2.363 * uc.meter
+DPM = config['instrument']['Diam']
 lam = config['instrument']['wavelength']
 lamD = lam / DPM
 intTimeDutyFactor = config['instrument']['dutyFactor']
 
 print(f"Wavelength: {lam / uc.nm} nm")
 print(f"Lambda/D: {lamD / uc.mas:.3f} mas")
+
 
 # === Define Host Star and Planet ===
 # Uses the Target class from cginoiselib to define the exoplanetary system.
@@ -135,7 +139,7 @@ print(f"Selected Delta Contrast: {selDeltaC:.3e}")
 
 # === Coronagraph Slice Parameters ===
 # Extract coronagraph parameters for the calculated working angle.
-cg = fl.coronagraphParameters(CG_Data.df, planetWA, DPM)
+cg = fl.coronagraphParameters(CG_Data.df, config, planetWA, DPM)
 
 # === Focal Plane Setup ===
 # Configure focal plane attributes based on operational mode and instrument config.
@@ -152,9 +156,6 @@ f_SR, CritLam, detPixSize_m, mpix, pixPlateSc = fl.getFocalPlaneAttributes(
     cg.omegaPSF
 )
 
-# === Sensor Inner Workings ===
-# Caveats concerning the capabilities of the sensor being used
-det_FWCserial = config['detector']['FWC_serial']
 
 # === Star Flux ===
 # Calculate the flux from the host star.
@@ -240,14 +241,14 @@ desiredRate = 0.1  # e-/pix/frame
 tfmin = 3          # min frame time (s)
 tfmax = 100        # max frame time (s)
 
-ENF, effReadnoise, frameTime, dQE = fl.compute_frame_time_and_dqe(
+ENF, effReadnoise, frameTime, dQE, QE_img = fl.compute_frame_time_and_dqe(
     desiredRate, tfmin, tfmax, 
     isPhotonCounting, QE_Data, DET_CBE_Data,
-    lam, mpix, cphrate.total, 
-    det_FWCserial
+    lam, mpix, cphrate.total
 )
 print(f"Calculated Frame Time: {frameTime:.2f} s")
-print(f"Differential Quantum Efficiency (dQE): {dQE:.3f}")
+print(f'QE in the image area: {QE_img:.2f}')
+print(f"Detected Quantum Efficiency (dQE): {dQE:.3f}")
 print(f"Excess Noise Factor (ENF): {ENF:.2f}")
 
 
@@ -259,8 +260,9 @@ detNoiseRate = fl.detector_noise_rates(DET_CBE_Data, monthsAtL2, frameTime, mpix
 # === Variance and SNR Calculation ===
 # Compute electron rates for variance calculation and residual speckle rate.
 k_pp = config['instrument']['pp_Factor_CBE']
-eRatesCore, residSpecRate = fl.compute_variance_rates(
+nvRatesCore, residSpecRate = fl.noiseVarianceRates(
     cphrate=cphrate,
+    QE=QE_img,
     dQE=dQE,
     ENF=ENF,
     detNoiseRate=detNoiseRate,
@@ -278,10 +280,11 @@ eRatesCore, residSpecRate = fl.compute_variance_rates(
 )
 
 SNRdesired = 5.0
-timeToSNR, criticalSNR = fl.compute_tsnr(SNRdesired, eRatesCore, residSpecRate)
+planetSignalRate = cphrate.planet  * dQE
+timeToSNR, criticalSNR = fl.compute_tsnr(SNRdesired, planetSignalRate, nvRatesCore, residSpecRate)
 
 print(f"\nTarget SNR = {SNRdesired:.1f} \nCritical SNR = {criticalSNR:.2f}")
-print(f"Time to SNR = {timeToSNR/uc.hour:.2f} hours")
+print(f"Time to SNR = {timeToSNR/uc.hour:.3f} hours or {timeToSNR:.1f} seconds")
 
 if timeToSNR > usableTinteg:
     print(f"Warning: Time to SNR ({timeToSNR/uc.hour:.2f} hrs) exceeds usable integration time ({usableTinteg/uc.hour:.2f} hrs).")

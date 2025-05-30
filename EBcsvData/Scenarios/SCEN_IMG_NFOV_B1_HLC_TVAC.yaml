@@ -1,6 +1,6 @@
 # Configuration parameters
 Filenames:
-  Scenario: 'SCEN_IMG_NFOV_B1_HLC_TVAC' # This scenario as a whole
+  ObservationCase: 'CON_IMG_NFB1_HLC' # This scenario as a whole
   CoronagraphFile: 'CGPERF_HLC_20190210br'
   FidPlanet: 'Threshold Companion'
   QE_Curve_file: 'QE_e2v_Spec'
@@ -26,7 +26,6 @@ instrument:
   RefStar_V_mag_CBE: 2.26
   pp_Factor_CBE: 2.0
 
-detector:
-  FWC_serial: 90000
-  CTI_clocking: 0.0000553
-  CTI_transfers: 1600
+TVACmeasured:
+  Kappa_c_HLCB1: 1.38
+  CoreThput_HLCB1: 0.0463 

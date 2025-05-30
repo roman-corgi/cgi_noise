@@ -373,7 +373,7 @@ class Target:
         return fluxRatio * (sma_AU * uc.AU / (radius_Rjup * uc.jupiterRadius)) ** 2
 
 
-def coronagraphParameters(cg_df, planetWA, DPM):
+def coronagraphParameters(cg_df, config, planetWA, DPM):
     """
     Extracts and calculates coronagraph parameters for a given working angle.
 
@@ -387,11 +387,10 @@ def coronagraphParameters(cg_df, planetWA, DPM):
     Returns:
         A CGParameters dataclass instance populated with calculated values.
     """
-    CGtauPol = 1
+ 
     indWA = cg_df[(cg_df.rlamD <= planetWA)]['rlamD'].idxmax(axis=0)
 
-    CGcoreThruput = cg_df.loc[indWA, 'coreThruput'] * CGtauPol
-    PSFpeakI = cg_df.loc[indWA, 'PSFpeak'] * CGtauPol
+        
     omegaPSF = cg_df.loc[indWA, 'area_sq_arcsec']
     CGintSamp = cg_df.loc[2, 'rlamD'] - cg_df.loc[1, 'rlamD']
     CGradius_arcsec = cg_df.at[indWA, 'r_as']
@@ -401,12 +400,22 @@ def coronagraphParameters(cg_df, planetWA, DPM):
     CG_PSFarea_sqlamD = omegaPSF / (CGdesignWL / uc.arcsec)**2
 
     CGintensity = cg_df.loc[indWA, 'I']
-    CG_occulter_transmission = cg_df.at[indWA, 'occTrans'] * CGtauPol
+    CG_occulter_transmission = cg_df.at[indWA, 'occTrans']  
     CGcontrast = cg_df.loc[indWA, 'contrast']
 
+    ObservationType = config['Filenames']['ObservationCase']
+    if ObservationType.find("IMG_NFB1_HLC") != -1:
+        # for Kappa_c, Core Throughput use TVAC measurement based on HLC Band 1
+        Kappa_c_meas = config['TVACmeasured']['Kappa_c_HLCB1']
+        CoreThroughput = config['TVACmeasured']['CoreThput_HLCB1']
+        PSFpeakI = CoreThroughput * Kappa_c_meas / CGintmpix        
+    else:        
+        CoreThroughput = cg_df.loc[indWA, 'coreThruput'] 
+        PSFpeakI = cg_df.loc[indWA, 'PSFpeak']  
+
     return CGParameters(
-        CGcoreThruput=CGcoreThruput,
-        PSFpeakI=PSFpeakI,
+        CGcoreThruput = CoreThroughput,
+        PSFpeakI = PSFpeakI,
         omegaPSF=omegaPSF,
         CGintSamp=CGintSamp,
         CGradius_arcsec=CGradius_arcsec,
@@ -415,8 +424,7 @@ def coronagraphParameters(cg_df, planetWA, DPM):
         CG_PSFarea_sqlamD=CG_PSFarea_sqlamD,
         CGintensity=CGintensity,
         CG_occulter_transmission=CG_occulter_transmission,
-        CGcontrast=CGcontrast,
-        CGtauPol=CGtauPol
+        CGcontrast=CGcontrast
     )
 
 def getSpectra(target, lam, bandWidth):
@@ -510,7 +518,7 @@ def detector_noise_rates(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCoun
     detDarkBOM = DET_CBE_Data.df.at[0, 'DarkBOM_e_per_pix_per_hr']
     detDarkEOM = DET_CBE_Data.df.at[0, 'DarkEOM_e_per_pix_per_hr']
     dark_per_hr = detDarkBOM + missionFraction * (detDarkEOM - detDarkBOM)
-    dark_per_s = dark_per_hr / 3600
+    dark_per_s = mpix * dark_per_hr / 3600  # from per pixel to per core
 
     detCIC1 = DET_CBE_Data.df.at[0, 'CICatGain1BOM_e_per_pix_per_fr']
     detCIC2 = DET_CBE_Data.df.at[0, 'CICatGain2BOM_e_per_pix_per_fr']
@@ -522,7 +530,7 @@ def detector_noise_rates(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCoun
     CIC_rate = ((detCIC2 - detCIC1) / (gain2 - gain1)) * EMgain + (
         detCIC1 - ((detCIC2 - detCIC1) / (gain2 - gain1)) * gain1
     ) * (1 + missionFraction * (CIC_degradation - 1))
-    CIC_per_s = CIC_rate / frameTime
+    CIC_per_s = mpix * CIC_rate / frameTime   # from per pixel to per core
 
     if isPhotonCounting:
         readNoise = 0
@@ -658,7 +666,7 @@ def rdi_noise_penalty(target, inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_
 def compute_frame_time_and_dqe(
     desiredRate, tfmin, tfmax,
     isPhotonCounting, QE_Data, DET_CBE_Data,
-    lam, mpix, cphrate_total, det_FWCserial ):
+    lam, mpix, cphrate_total):
     """
     Compute frame time and effective quantum efficiency (dQE) based on photon counting mode.
 
@@ -679,7 +687,7 @@ def compute_frame_time_and_dqe(
     - dQE: effective quantum efficiency
     """
 
-    det_QE = QE_Data.df.loc[QE_Data.df['lambda_nm'] <= (lam / uc.nm), 'QE_at_neg100degC'].iloc[-1]
+    QE_img = QE_Data.df.loc[QE_Data.df['lambda_nm'] <= (lam / uc.nm), 'QE_at_neg100degC'].iloc[-1]
     det_EMgain = DET_CBE_Data.df.at[0, 'EMGain']
     det_readnoise = DET_CBE_Data.df.at[0, 'ReadNoise_e']
     det_PCthresh = DET_CBE_Data.df.at[0, 'PCThresh_nsigma']
@@ -693,22 +701,22 @@ def compute_frame_time_and_dqe(
     if isPhotonCounting:
         ENF = 1.0
         effReadnoise = 0.0
-        frameTime = round(min(tfmax, max(tfmin, desiredRate / (cphrate_total * det_QE / mpix))), 1)
-        approxPerPixelPerFrame = frameTime * cphrate_total * det_QE / mpix
+        frameTime = round(min(tfmax, max(tfmin, desiredRate / (cphrate_total * QE_img / mpix))), 1)
+        approxPerPixelPerFrame = frameTime * cphrate_total * QE_img / mpix
         eff_coincidence = (1 - math.exp(-approxPerPixelPerFrame)) / approxPerPixelPerFrame if approxPerPixelPerFrame > 0 else 1.0
         eff_thresholding = math.exp(-det_PCthresh * det_readnoise / det_EMgain)
-        dQE = det_QE * eff_coincidence * eff_thresholding * CTE
+        dQE = QE_img * eff_coincidence * eff_thresholding * CTE
     else:
         ENF = math.sqrt(2)
         effReadnoise = det_readnoise / det_EMgain
         Nsigma = 3
         NEE = Nsigma * ENF * det_EMgain
         y_crit = ((NEE**2 + 2 * det_FWCser) - math.sqrt(NEE**4 + 4 * NEE**2 * det_FWCser)) / 2
-        tfr_crit = y_crit / (cphrate_total * det_QE / mpix)
+        tfr_crit = y_crit / (cphrate_total * QE_img / mpix)
         frameTime = min(tfmax, max(tfmin, math.floor(tfr_crit)))
-        dQE = det_QE * CTE
+        dQE = QE_img * CTE
 
-    return ENF, effReadnoise, frameTime, dQE
+    return ENF, effReadnoise, frameTime, dQE, QE_img
 
 
 @dataclass
@@ -732,7 +740,7 @@ class VarianceRates:
         fields_str = ", ".join([f"{k}={v:.3e}" for k, v in fields.items()])
         return f"VarianceRates({fields_str}, total={self.total:.3e})"
 
-def compute_variance_rates(cphrate, dQE, ENF, detNoiseRate, k_sp, k_det, k_lzo, k_ezo,
+def noiseVarianceRates(cphrate, QE, dQE, ENF, detNoiseRate, k_sp, k_det, k_lzo, k_ezo,
                            f_SR, starFlux, selDeltaC, k_pp, cg, speckleThroughput, Acol):
     """
     Compute variance rates and residual speckle rate after post-processing.
@@ -754,13 +762,12 @@ def compute_variance_rates(cphrate, dQE, ENF, detNoiseRate, k_sp, k_det, k_lzo, 
 
     residSpecRate = (
         f_SR * starFlux * (selDeltaC / k_pp) *
-        cg.PSFpeakI * cg.CGintmpix *
-        speckleThroughput * Acol * dQE
+        cg.PSFpeakI * cg.CGintmpix * speckleThroughput * Acol * dQE
     )
 
     
     rates = VarianceRates(
-        planet  = ENF**2 * cphrate.planet  * dQE,
+        planet  = ENF**2 * cphrate.planet  * QE,  # this is the image area QE as used in EB: will need to be revisited
         speckle = ENF**2 * cphrate.speckle * dQE * k_sp,
         locZodi = ENF**2 * cphrate.locZodi * dQE * k_lzo,
         exoZodi = ENF**2 * cphrate.exoZodi * dQE * k_ezo,
@@ -773,7 +780,7 @@ def compute_variance_rates(cphrate, dQE, ENF, detNoiseRate, k_sp, k_det, k_lzo, 
     return rates, residSpecRate
 
 
-def compute_tsnr(SNRdesired, eRatesCore, residSpecRate):
+def compute_tsnr(SNRdesired, planetSignalRate, nvRatesCore, residSpecRate):
     """
     Compute the required integration time and critical SNR.
 
@@ -787,11 +794,11 @@ def compute_tsnr(SNRdesired, eRatesCore, residSpecRate):
     - criticalSNR: maximum achievable SNR given residual speckle
     """
 
-    denom = eRatesCore.planet**2 - SNRdesired**2 * residSpecRate**2
+    denom = planetSignalRate**2 - SNRdesired**2 * residSpecRate**2
     if denom <= 0:
         raise ValueError("compute_tsnr: SNR condition is not achievable with given residual speckle level.")
 
-    timeToSNR = SNRdesired**2 * eRatesCore.total / denom
-    criticalSNR = eRatesCore.planet / residSpecRate
+    timeToSNR = SNRdesired**2 * nvRatesCore.total / denom
+    criticalSNR = planetSignalRate  / residSpecRate
 
     return timeToSNR, criticalSNR

@@ -1,6 +1,7 @@
 # Configuration parameters
 Filenames:
-  Scenario: 'SCEN_IMG_NFOV_B1_HLC' # This scenario as a whole
+  Scenario_old: 'SCEN_IMG_NFOV_B1_HLC' # This scenario as a whole
+  Scenario: 'CON_IMG_NFB1_HLC'
   CoronagraphFile: 'CGPERF_HLC_20190210br'
   FidPlanet: 'Fiducial HLC B1'
   QE_Curve_file: 'QE_e2v_Spec'
