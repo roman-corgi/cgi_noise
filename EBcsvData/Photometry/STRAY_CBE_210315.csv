@@ -1,0 +1,4 @@
+PerfLevel,Threshold IMG NF B1,EB IMG NF Band 1,EB SPC Amici Band 3,EB IMG WF - Band 4,units
+REQ,27,6,1.5,7,ph/mm2/s
+CBE,8.1,0.34,0.34,0.34,ph/mm2/s
+# Based on stray light analysis and luminescence study (date 201201) as part of Risk 28 study,,,,,

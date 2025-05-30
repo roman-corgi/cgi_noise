@@ -3,14 +3,14 @@
 
 DataSpecification:
   ObservationCase: 'CON_SPEC_NFB3_SPC' # This scenario as a whole
-  Coronagraph_Data:  'CGPERF_SPEC_20200617'
-  QE_Curve_Data: 'QE_e2v_Spec'
-  Detector_Data: 'DET_CBE_TVAC_240720'
+  Coronagraph_Data:  'CGPERF_SPC_NFB1_200617'
+  QE_Curve_Data: 'DET_QE_e2v_Spec'
+  Detector_Data: 'DET_CBE_250530'
   ContrastStability_Data: 'CS_NFB3_SPC_201026'
   CS_Type: 'ICBE'
   Throughput_Data: 'THPT_EB_SPB3_200730'
   Calibration_Data: 'CAL_EB_TTR_241227'
-  StrayLight_Data: 'STRAY_lightforFRN210315'
+  StrayLight_Data: 'STRAY_CBE_210315'
   
 instrument:
   wavelength: 730.0e-9 

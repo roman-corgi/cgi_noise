@@ -3,14 +3,14 @@
 
 DataSpecification:
   ObservationCase: 'REFERENCE_IMG_NFB1_HLC' # This scenario as a whole
-  Coronagraph_Data: 'CGPERF_HLC_20190210br'
-  QE_Curve_Data: 'QE_e2v_Spec'
-  Detector_Data: 'DET_CBE_TVAC_240720'
+  Coronagraph_Data: 'CGPERF_HLC_NFB1_190210'
+  QE_Curve_Data: 'DET_QE_e2v_Spec'
+  Detector_Data: 'DET_CBE_250530'
   ContrastStability_Data: 'CS_NFB1_HLC_240425'
   CS_Type: 'ICBE'
   Throughput_Data: 'THPT_NFB1_AUG_240725'
   Calibration_Data: 'CAL_EB_TTR_241227'
-  StrayLight_Data: 'STRAY_lightforFRN210315'
+  StrayLight_Data: 'STRAY_CBE_210315'
   
 instrument:
   Diam: 2.363
