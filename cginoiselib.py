@@ -41,7 +41,7 @@ def getScenFileNames(config):
     Retrieves a list of full file paths for scenario-specific CSV data files.
 
     The function constructs paths based on filenames specified in the 'config'
-    dictionary, organized under subfolders within an "EBcsvData" directory.
+    dictionary, organized under subfolders within an "Data" directory.
 
     Args:
         config: A dictionary containing a 'DataSpecification' key, which itself is a
@@ -72,7 +72,7 @@ def getScenFileNames(config):
     ]
     for folder, key in ffList:
         name = config['DataSpecification'][key] + ".csv"
-        path = filenamedir / "EBcsvData" / folder / name
+        path = filenamedir / "Data" / folder / name
         filenameList.append(str(path))
     return filenameList
 
@@ -176,8 +176,8 @@ def contrastStabilityPars(CS_Type, planetWA, CS_Data):
 
 
 def getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, CGdesignWL, omegaPSF):
-    FocalPlaneAtt = loadCSVrow(Path(os.getcwd(), 'EBcsvData', 'CONST_SNR_FPattributes.csv'))
-    AmiciPar = loadCSVrow(Path(os.getcwd(), 'EBcsvData', 'CONST_Amici_parameters.csv'))
+    FocalPlaneAtt = loadCSVrow(Path(os.getcwd(), 'Data', 'CONST_SNR_FPattributes.csv'))
+    AmiciPar = loadCSVrow(Path(os.getcwd(), 'Data', 'CONST_Amici_parameters.csv'))
     """
     Calculates focal plane attributes based on the operational mode (Imaging or Spectroscopy).
 
@@ -446,7 +446,7 @@ def getSpectra(target, lam, bandWidth):
                                        for the target's spectral type.
             starFlux (float): Actual flux from the target star (ph/s/m^2) at Earth.
     """
-    spectra_path = Path(os.getcwd(), 'EBcsvData', 'Spectra', 'SPECTRA_ALL_BPGS.csv')
+    spectra_path = Path(os.getcwd(), 'Data', 'Spectra', 'SPECTRA_ALL_BPGS.csv')
     SPECTRA_Data = loadCSVrow(spectra_path)
 
     bandRange = SPECTRA_Data.df[abs(SPECTRA_Data.df['Wavelength_m'] - lam) <= (0.5 * bandWidth * lam)]
