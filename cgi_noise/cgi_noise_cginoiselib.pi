@@ -1,0 +1,674 @@
+"""
+Library of core functions for the EB performance modeling pipeline.
+
+This module provides structured access to scenario loading, throughput computation,
+optical and detector models, noise variance calculations, and astrophysical fluxes.
+All units are assumed to follow SI unless otherwise noted, and helper constants
+are provided in the 'constants' module.
+"""
+from dataclasses import dataclass, asdict
+from pathlib import Path
+import os
+import math
+import numpy as np
+from . import check_data_path
+from .constants import mas, nm, jupiterRadius, AU, arcsec, h_planck, c_light, sunAbsMag
+from .loadCSVrow import loadCSVrow
+
+def open_folder(*folders):
+    """
+    Constructs a path to a subfolder and returns a dictionary of file paths within it.
+
+    Args:
+        *folders: A sequence of folder names to be joined to the data directory.
+
+    Returns:
+        A dictionary where keys are filenames (str) and values are Path objects
+        for each file in the specified directory.
+    """
+    data_root = check_data_path()
+    data_path = data_root / Path(*folders)
+    if data_path.exists():
+        return {file.name: file for file in data_path.iterdir() if file.is_file()}
+    
+    raise FileNotFoundError(
+        f"Data folder 'data/{'/'.join(folders)}' not found. "
+        "Ensure the 'data/' folder from https://github.com/roman-corgi/cgi_noise is accessible."
+    )
+
+def getScenFileNames(config, data_path=None):
+    """
+    Retrieves a list of full file paths for scenario-specific CSV data files.
+
+    Args:
+        config: A dictionary containing a 'DataSpecification' key with filenames.
+        data_path: Path to the data/ folder (optional, defaults to check_data_path()).
+
+    Returns:
+        A list of strings, each an absolute path to a CSV file.
+    """
+    if data_path is None:
+        data_path = check_data_path()
+    
+    filenameList = []
+    ffList = [
+        ("Photometry", "Coronagraph_Data"),
+        ("Photometry", "QE_Curve_Data"),
+        ("Photometry", "Detector_Data"),
+        ("Photometry", "StrayLight_Data"),
+        ("Photometry", "Throughput_Data"),
+        ("Calibration", "Calibration_Data"),
+        ("Cstability", "ContrastStability_Data")
+    ]
+    for folder, key in ffList:
+        name = config['DataSpecification'][key] + ".csv"
+        path = data_path / folder / name
+        filenameList.append(str(path))
+    return filenameList
+
+def loadCSVs(filenameList):
+    """Loads CSV files into loadCSVrow objects."""
+    return [loadCSVrow(f) for f in filenameList]
+
+def workingAnglePars(CG_Data, CS_Data):
+    """
+    Determines the effective Inner Working Angle (IWA) and Outer Working Angle (OWA).
+
+    Args:
+        CG_Data: Loaded CSV data for coronagraph performance with 'r_lam_D' column.
+        CS_Data: Loaded CSV data for contrast stability with 'r_lam_D' column.
+
+    Returns:
+        Tuple (IWA, OWA) in lambda/D units.
+    """
+    IWAc = CG_Data.df.at[0, 'r_lam_D']
+    IWAs = CS_Data.df.at[0, 'r_lam_D']
+    
+    if len(CG_Data.df) > 1:
+        OWAc = CG_Data.df['r_lam_D'].iloc[-1]
+    else:
+        OWAc = CG_Data.df['r_lam_D'].iloc[0] + 3
+    
+    if len(CS_Data.df) > 1:
+        OWAs = CS_Data.df['r_lam_D'].iloc[-1]
+    else:
+        OWAs = CS_Data.df['r_lam_D'].iloc[0] + 3
+    
+    return max(IWAs, IWAc), min(OWAs, OWAc)
+
+def contrastStabilityPars(CS_Type, planetWA, CS_Data):
+    """
+    Extracts contrast stability parameters at a given planet working angle.
+
+    Args:
+        CS_Type: String prefix (e.g., "MCBE_") for column names.
+        planetWA: Planet's working angle in lambda/D.
+        CS_Data: Loaded CSV data with 'r_lam_D' and CS_Type-prefixed columns.
+
+    Returns:
+        Tuple (selDeltaC, rawContrast, SystematicCont, initStatRawContrast,
+               rawContrast, IntContStab, ExtContStab) in parts per billion.
+    """
+    tol = 0.05
+    indCS = CS_Data.df['r_lam_D'].searchsorted(planetWA + tol) - 1
+
+    headers = CS_Data.df.columns.tolist()
+    nCols = len(headers)
+    fnARC = CS_Type + "_AvgRawContrast"
+    fnECS = CS_Type + "_ExtContStab"
+    fnICS = CS_Type + "_IntContStab"
+    fnSC = CS_Type + "_SystematicC"
+    fnISRC = CS_Type + "_InitStatContrast"
+
+    ExtContStab = CS_Data.df.at[indCS, fnECS] * 1e-9  # ppb
+    IntContStab = CS_Data.df.at[indCS, fnICS] * 1e-9
+    rawContrast = CS_Data.df.at[indCS, fnARC] * 1e-9
+    initStatRawContrast = CS_Data.df.at[indCS, fnISRC] * 1e-9
+
+    if nCols == 16 and 'SystematicC' in headers[13]:
+        SystematicCont = CS_Data.df.at[indCS, fnSC] * 1e-9
+        selDeltaC = math.sqrt((ExtContStab**2) + (IntContStab**2) + (SystematicCont**2))
+    elif nCols == 13:
+        SystematicCont = 0
+        selDeltaC = math.sqrt((ExtContStab**2) + (IntContStab**2))
+    else:
+        raise IndexError('The contrast stability file is not formatted as expected.')
+
+    return selDeltaC, rawContrast, SystematicCont, initStatRawContrast, rawContrast, IntContStab, ExtContStab
+
+@dataclass
+class CGParameters:
+    """
+    Holds parameters related to coronagraph performance.
+
+    Attributes:
+        CGcoreThruput: Core throughput of the coronagraph system.
+        PSFpeakI: Peak intensity of the coronagraphic PSF (normalized).
+        omegaPSF: Solid angle of the PSF core in arcsec^2.
+        CGintSamp: Sampling interval in lambda/D units.
+        CGradius_arcsec: Radius associated with the working angle in arcseconds.
+        CGdesignWL: Design wavelength of the coronagraph in meters.
+        CGintmpix: Number of pixels within the integration area.
+        CG_PSFarea_sqlamD: Area of the PSF core in (lambda/D)^2.
+        CGintensity: Intensity value at the working angle.
+        CG_occulter_transmission: Transmission of the coronagraph occulter.
+        CGcontrast: Raw contrast at the working angle.
+        CGtauPol: Polarization throughput factor (default 1.0).
+    """
+    CGcoreThruput: float
+    PSFpeakI: float
+    omegaPSF: float
+    CGintSamp: float
+    CGradius_arcsec: float
+    CGdesignWL: float
+    CGintmpix: float
+    CG_PSFarea_sqlamD: float
+    CGintensity: float
+    CG_occulter_transmission: float
+    CGcontrast: float
+    CGtauPol: float = 1.0
+
+def coronagraphParameters(cg_df, config, planetWA, DPM):
+    """
+    Extracts and calculates coronagraph parameters for a given working angle.
+
+    Args:
+        cg_df: Pandas DataFrame with coronagraph data, indexed by 'r_lam_D'.
+        config: Scenario configuration dictionary.
+        planetWA: Planet's working angle in lambda/D.
+        DPM: Primary mirror diameter in meters.
+
+    Returns:
+        CGParameters instance with calculated values.
+    """
+    indWA = cg_df[(cg_df.r_lam_D <= planetWA)]['r_lam_D'].idxmax(axis=0)
+
+    omegaPSF = cg_df.loc[indWA, 'area_sq_arcsec']
+    CGintSamp = cg_df.loc[2, 'r_lam_D'] - cg_df.loc[1, 'r_lam_D']
+    CGradius_arcsec = cg_df.at[indWA, 'r_as']
+
+    CGdesignWL = DPM * cg_df.iloc[0, 1] * arcsec / cg_df.iloc[0, 0]
+    CGintmpix = omegaPSF * (arcsec**2) / ((CGintSamp * CGdesignWL / DPM)**2)
+    CG_PSFarea_sqlamD = omegaPSF / (CGdesignWL / arcsec)**2
+
+    CGintensity = cg_df.loc[indWA, 'I']
+    CG_occulter_transmission = cg_df.at[indWA, 'occTrans']
+    CGcontrast = cg_df.loc[indWA, 'contrast']
+
+    ObservationType = config['DataSpecification']['ObservationCase']
+    if ObservationType.find("IMG_NFB1_HLC") != -1:
+        Kappa_c_meas = config['TVACmeasured']['Kappa_c_HLCB1']
+        CoreThroughput = config['TVACmeasured']['CoreThput_HLCB1']
+        PSFpeakI = CoreThroughput * Kappa_c_meas / CGintmpix
+    else:
+        CoreThroughput = cg_df.loc[indWA, 'coreThruput']
+        PSFpeakI = cg_df.loc[indWA, 'PSFpeak']
+
+    return CGParameters(
+        CGcoreThruput=CoreThroughput,
+        PSFpeakI=PSFpeakI,
+        omegaPSF=omegaPSF,
+        CGintSamp=CGintSamp,
+        CGradius_arcsec=CGradius_arcsec,
+        CGdesignWL=CGdesignWL,
+        CGintmpix=CGintmpix,
+        CG_PSFarea_sqlamD=CG_PSFarea_sqlamD,
+        CGintensity=CGintensity,
+        CG_occulter_transmission=CG_occulter_transmission,
+        CGcontrast=CGcontrast
+    )
+
+def getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, CGdesignWL, omegaPSF):
+    """
+    Calculates focal plane attributes based on operational mode.
+
+    Args:
+        opMode: "SPEC" (Spectroscopy) or "IMG" (Imaging).
+        config: Scenario configuration dictionary.
+        DET_CBE_Data: Detector model CSV data with 'PixelSize_m'.
+        lam: Observation wavelength in meters.
+        bandWidth: Fractional spectral bandwidth.
+        DPM: Primary mirror diameter in meters.
+        CGdesignWL: Coronagraph design wavelength in meters.
+        omegaPSF: Solid angle of the PSF core in arcsec^2.
+
+    Returns:
+        Tuple (f_SR, CritLam, detPixSize_m, mpix, pixPlateSc).
+    """
+    FocalPlaneAtt = loadCSVrow(data_path / 'CONST_SNR_FPattributes.csv')
+    AmiciPar = loadCSVrow(data_path / 'CONST_Amici_parameters.csv')
+
+    detPixSize_m = DET_CBE_Data.df.at[0, 'PixelSize_m']
+
+    if opMode == "SPEC":
+        try:
+            resolution = config['instrument']['R_required']
+            f_SR = 1 / (resolution * bandWidth)
+        except:
+            resolution = 0.0001
+            f_SR = -1
+
+        CritLam = FocalPlaneAtt.df.at[1, 'Critical_Lambda_m']
+        compbeamD_m = AmiciPar.df.loc[0, 'compressd_beam_diamtr_m']
+        fnlFocLen_m = AmiciPar.df.loc[0, 'final_focal_length_m']
+        Fno = fnlFocLen_m / compbeamD_m
+        pixPerlamD = lam * Fno / detPixSize_m
+        PSF_x_lamD = AmiciPar.df.loc[0, 'PSF_core_x_extent_lamD']
+        PSF_y_lamD = AmiciPar.df.loc[0, 'PSF_core_y_extent_lamD']
+        xpixPerCor = PSF_x_lamD * 2 * pixPerlamD
+        ypixPerCor = PSF_y_lamD * 2 * pixPerlamD
+        Rlamsq = AmiciPar.df.loc[0, 'lam_squared']
+        Rlam = AmiciPar.df.loc[0, 'lam']
+        Rconst = AmiciPar.df.loc[0, 'constant']
+        ResPowatPSF = Rconst + Rlam * lam + Rlamsq * lam**2
+        dpix_dlam = ResPowatPSF * xpixPerCor / lam
+        xpixPerSpec = dpix_dlam * lam / resolution
+        mpix = xpixPerSpec * ypixPerCor
+        pixPlateSc = CritLam / DPM / 2 / mas
+
+    elif opMode == "IMG":
+        f_SR = 1
+        CritLam = FocalPlaneAtt.df.at[0, 'Critical_Lambda_m']
+        mpix = omegaPSF * arcsec**2 * (lam / CGdesignWL)**2 * (2 * DPM / CritLam)**2
+        pixPlateSc = CritLam / DPM / 2 / mas
+    else:
+        raise Exception("Valid Operational Modes are IMG and SPEC")
+
+    return f_SR, CritLam, detPixSize_m, mpix, pixPlateSc
+
+@dataclass
+class Target:
+    """
+    Represents an astrophysical target (star-planet system).
+
+    Attributes:
+        v_mag: V-band magnitude of the host star.
+        dist_pc: Distance to the system in parsecs.
+        specType: Spectral type of the host star (e.g., 'G2V').
+        phaseAng_deg: Orbital phase angle of the planet in degrees.
+        sma_AU: Semi-major axis of the planet's orbit in AU.
+        radius_Rjup: Planet radius in Jupiter radii.
+        geomAlb_ag: Geometric albedo of the planet.
+        exoZodi: Exo-zodiacal dust level in zodis.
+        albedo: Effective Lambertian albedo (optional, calculated if None).
+    """
+    v_mag: float
+    dist_pc: float
+    specType: str
+    phaseAng_deg: float
+    sma_AU: float
+    radius_Rjup: float
+    geomAlb_ag: float
+    exoZodi: float
+    albedo: float = None
+
+    @staticmethod
+    def phaseAng_to_sep(sma_AU, dist_pc, phaseAng_deg):
+        """Converts orbital parameters to on-sky separation in milliarcseconds."""
+        sep_mas = ((sma_AU * AU * math.sin(math.radians(phaseAng_deg))) / (dist_pc * AU/mas)) / mas
+        return sep_mas
+    
+    @staticmethod
+    def albedo_from_geomAlbedo(phaseAng_deg, geomAlb_ag):
+        """Calculates effective albedo from geometric albedo and phase angle."""
+        alpha = phaseAng_deg * math.pi / 180
+        return 1/np.pi * (np.sin(alpha) + (np.pi - alpha)*np.cos(alpha)) * geomAlb_ag
+    
+    @staticmethod
+    def fluxRatio_to_deltaMag(fluxRatio):
+        """Converts flux ratio to magnitude difference."""
+        return (-2.5) * math.log10(fluxRatio)
+
+    @staticmethod
+    def deltaMag_to_fluxRatio(deltaMag):
+        """Converts magnitude difference to flux ratio."""
+        return 10 ** (-0.4 * deltaMag)
+
+    @staticmethod
+    def fluxRatio_SMA_rad_to_albedo(fluxRatio, sma_AU, radius_Rjup):
+        """Calculates albedo from flux ratio, SMA, and radius."""
+        return fluxRatio * (sma_AU * AU / (radius_Rjup * jupiterRadius)) ** 2
+
+def getSpectra(target, lam, bandWidth):
+    """
+    Calculates stellar flux based on spectral type, V-magnitude, wavelength, and bandwidth.
+
+    Args:
+        target: Target instance with specType and v_mag.
+        lam: Central observation wavelength in meters.
+        bandWidth: Fractional bandwidth.
+
+    Returns:
+        Tuple (inBandFlux0_sum, inBandZeroMagFlux, starFlux) in ph/s/m^2.
+    """
+    spectra_path = check_data_path() / 'Spectra' / 'SPECTRA_ALL_BPGS.csv'
+    SPECTRA_Data = loadCSVrow(spectra_path)
+
+    bandRange = SPECTRA_Data.df[abs(SPECTRA_Data.df['Wavelength_m'] - lam) <= (0.5 * bandWidth * lam)]
+    onlySpec = bandRange.drop(['Wavelength_m', 'E_ph_J'], axis=1)
+
+    Ephot = h_planck * c_light / lam
+    onlySpecEphot = onlySpec.apply(lambda x: x / Ephot, axis=1, result_type='broadcast')
+
+    deltaLambda = SPECTRA_Data.df.at[2, 'Wavelength_m'] - SPECTRA_Data.df.at[1, 'Wavelength_m']
+    inBandFlux0_sum = onlySpecEphot.sum(axis=0) * deltaLambda
+
+    inBandZeroMagFlux = inBandFlux0_sum.at[target.specType]
+    starFlux = inBandZeroMagFlux * 10 ** (-0.4 * target.v_mag)
+
+    return inBandFlux0_sum, inBandZeroMagFlux, starFlux
+
+def getStrayLightfromfile(scenario, perfLevel, STRAY_FRN_Data):
+    """
+    Retrieves stray light data from CSV.
+
+    Args:
+        scenario: Scenario identifier (e.g., 'Threshold IMG NF B1').
+        perfLevel: Performance level (e.g., 'CBE').
+        STRAY_FRN_Data: Loaded stray light CSV data.
+
+    Returns:
+        Stray light value in ph/s/mm^2.
+    """
+    rowID = STRAY_FRN_Data.df.loc[STRAY_FRN_Data.df['PerfLevel'] == perfLevel].index[0]
+    try:
+        strayLight = STRAY_FRN_Data.df.at[rowID, scenario]
+    except:
+        scenario = scenario.replace('DRM', 'EB')
+        try:
+            strayLight = STRAY_FRN_Data.df.at[rowID, scenario]
+        except:
+            raise Exception('Stray light data not found')
+    return strayLight
+
+@dataclass
+class DetNoiseRates:
+    """
+    Holds detector noise rates.
+
+    Attributes:
+        dark: Dark current rate in electrons/pixel/second.
+        CIC: Clock-Induced Charge rate in electrons/pixel/second.
+        read: Read noise squared rate in (electrons/second)^2 / (pixel integrated area / s).
+    """
+    dark: float
+    CIC: float
+    read: float
+
+def detector_noise_rates(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCounting):
+    """
+    Calculates detector noise rates considering mission lifetime degradation.
+
+    Args:
+        DET_CBE_Data: Detector model CSV data.
+        monthsAtL2: Mission duration at L2 in months.
+        frameTime: Exposure time per frame in seconds.
+        mpix: Number of pixels in the photometric aperture.
+        isPhotonCounting: Boolean for photon counting mode.
+
+    Returns:
+        DetNoiseRates instance.
+    """
+    missionFraction = monthsAtL2 / DET_CBE_Data.df.at[0, 'DetEOL_mos']
+    detDarkBOM = DET_CBE_Data.df.at[0, 'DarkBOM_e_per_pix_per_hr']
+    detDarkEOM = DET_CBE_Data.df.at[0, 'DarkEOM_e_per_pix_per_hr']
+    dark_per_hr = detDarkBOM + missionFraction * (detDarkEOM - detDarkBOM)
+    dark_per_s = mpix * dark_per_hr / 3600
+
+    detCIC1 = DET_CBE_Data.df.at[0, 'CICatGain1BOM_e_per_pix_per_fr']
+    detCIC2 = DET_CBE_Data.df.at[0, 'CICatGain2BOM_e_per_pix_per_fr']
+    gain1 = DET_CBE_Data.df.at[0, 'Gain1BOM']
+    gain2 = DET_CBE_Data.df.at[0, 'Gain2BOM']
+    CIC_degradation = DET_CBE_Data.df.at[0, 'CICdegradationEOM']
+    EMgain = DET_CBE_Data.df.at[0, 'EMGain']
+
+    CIC_rate = ((detCIC2 - detCIC1) / (gain2 - gain1)) * EMgain + (
+        detCIC1 - ((detCIC2 - detCIC1) / (gain2 - gain1)) * gain1
+    ) * (1 + missionFraction * (CIC_degradation - 1))
+    CIC_per_s = mpix * CIC_rate / frameTime
+
+    if isPhotonCounting:
+        readNoise = 0
+    else:
+        detCamRead = DET_CBE_Data.df.at[0, 'ReadNoise_e']
+        EMgain = DET_CBE_Data.df.at[0, 'EMGain']
+        readNoise = detCamRead / EMgain
+
+    read_noise_per_s = (mpix / frameTime) * (readNoise ** 2)
+
+    return DetNoiseRates(
+        dark=dark_per_s,
+        CIC=CIC_per_s,
+        read=read_noise_per_s
+    )
+
+@dataclass
+class Throughput:
+    """
+    Holds optical throughput components.
+
+    Attributes:
+        refl: Combined reflectivity/transmissivity of telescope optics.
+        filt: Filter throughput.
+        polr: Polarizer throughput.
+        core: Coronagraph core throughput.
+        occt: Coronagraph occulter transmission.
+    """
+    refl: float
+    filt: float
+    polr: float
+    core: float
+    occt: float
+
+def compute_throughputs(THPT_Data, cg, ezdistrib="falloff"):
+    """
+    Compute optical throughputs and exozodi factors.
+
+    Args:
+        THPT_Data: Loaded throughput CSV data.
+        cg: CGParameters instance.
+        ezdistrib: Exo-zodi distribution ("lumpy", "uniform", "falloff").
+
+    Returns:
+        Tuple (Throughput instance, dict of total throughputs).
+    """
+    dist_map = {
+        "lumpy": 0.49,
+        "uniform": 1.00,
+        "falloff": 0.74
+    }
+
+    if ezdistrib not in dist_map:
+        raise ValueError(f"Invalid ezodistribution: {ezdistrib}. Must be 'lumpy', 'uniform', or 'falloff'.")
+
+    distFactor = dist_map[ezdistrib]
+
+    thput = Throughput(
+        refl=THPT_Data.df.at[0, 'Pupil_Transmission']
+             * THPT_Data.df.at[0, 'CBE_OTAplusTCA']
+             * THPT_Data.df.at[0, 'CBE_CGI'],
+        filt=1.0,
+        polr=1.0,
+        core=THPT_Data.df.at[0, 'CBE_Core'],
+        occt=cg.CG_occulter_transmission
+    )
+
+    planetThroughput = thput.refl * thput.filt * thput.polr * thput.core
+    speckleThroughput = thput.refl * thput.filt * thput.polr
+    locZodiThroughput = thput.refl * thput.filt * thput.polr * thput.occt
+    exoZodiThroughput = locZodiThroughput * distFactor
+
+    return thput, {
+        "planet": planetThroughput,
+        "speckle": speckleThroughput,
+        "local_zodi": locZodiThroughput,
+        "exo_zodi": exoZodiThroughput
+    }
+
+def rdi_noise_penalty(target, inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_tTar, RefStarSpecType, RefStarVmag):
+    """
+    Computes noise penalty factors due to Reference Differential Imaging (RDI).
+
+    Args:
+        target: Target instance.
+        inBandFlux0_sum: Zero-magnitude flux series.
+        starFlux: Science target star flux in ph/s/m^2.
+        TimeonRefStar_tRef_per_tTar: Time ratio on reference star.
+        RefStarSpecType: Reference star spectral type.
+        RefStarVmag: Reference star V-band magnitude.
+
+    Returns:
+        Dict with RDI penalty factors (k_sp, k_det, k_lzo, k_ezo).
+    """
+    RefStarinBandZeroMagFlux = inBandFlux0_sum.at[RefStarSpecType]
+    RefStarFlux = RefStarinBandZeroMagFlux * (10 ** (-0.4 * RefStarVmag))
+    BrightnessRatio = RefStarFlux / starFlux
+
+    timeRatio = TimeonRefStar_tRef_per_tTar
+    betaRDI = 1 / (BrightnessRatio * timeRatio)
+
+    k_sp = 1 + betaRDI
+    k_det = 1 + betaRDI**2 * timeRatio
+    k_lzo = k_det
+    k_ezo = k_sp
+
+    return {
+        "k_sp": k_sp,
+        "k_det": k_det,
+        "k_lzo": k_lzo,
+        "k_ezo": k_ezo
+    }
+
+def compute_frame_time_and_dqe(desiredRate, tfmin, tfmax, isPhotonCounting, QE_Data, DET_CBE_Data, lam, mpix, cphrate_total):
+    """
+    Compute frame time and effective quantum efficiency (dQE).
+
+    Args:
+        desiredRate: Target e-/pix/frame.
+        tfmin, tfmax: Min/max allowed frame time (seconds).
+        isPhotonCounting: True if photon counting mode.
+        QE_Data: Quantum efficiency CSV data.
+        DET_CBE_Data: Detector model CSV data.
+        lam: Central wavelength in meters.
+        mpix: Number of pixels integrated.
+        cphrate_total: Total core photon rate (e-/s).
+
+    Returns:
+        Tuple (ENF, effReadnoise, frameTime, dQE, QE_img).
+    """
+    QE_img = QE_Data.df.loc[QE_Data.df['lambda_nm'] <= (lam / nm), 'QE_at_neg100degC'].iloc[-1]
+    det_EMgain = DET_CBE_Data.df.at[0, 'EMGain']
+    det_readnoise = DET_CBE_Data.df.at[0, 'ReadNoise_e']
+    det_PCthresh = DET_CBE_Data.df.at[0, 'PCThresh_nsigma']
+    det_FWCser = DET_CBE_Data.df.at[0, 'FWCserial']
+    det_FWCimg = DET_CBE_Data.df.at[0, 'FWCimage']
+    CTI_clocking = DET_CBE_Data.df.at[0, 'CTI_clk']
+    nTransfers = DET_CBE_Data.df.at[0, 'CTI_xfers']
+
+    CTE = (1 - CTI_clocking) ** nTransfers
+
+    if isPhotonCounting:
+        ENF = 1.0
+        effReadnoise = 0.0
+        frameTime = round(min(tfmax, max(tfmin, desiredRate / (cphrate_total * QE_img / mpix))), 1)
+        approxPerPixelPerFrame = frameTime * cphrate_total * QE_img / mpix
+        eff_coincidence = (1 - math.exp(-approxPerPixelPerFrame)) / approxPerPixelPerFrame if approxPerPixelPerFrame > 0 else 1.0
+        eff_thresholding = math.exp(-det_PCthresh * det_readnoise / det_EMgain)
+        dQE = QE_img * eff_coincidence * eff_thresholding * CTE
+    else:
+        ENF = math.sqrt(2)
+        effReadnoise = det_readnoise / det_EMgain
+        Nsigma = 3
+        NEE = Nsigma * ENF * det_EMgain
+        y_crit = ((NEE**2 + 2 * det_FWCser) - math.sqrt(NEE**4 + 4 * NEE**2 * det_FWCser)) / 2
+        tfr_crit = y_crit / (cphrate_total * QE_img / mpix)
+        frameTime = min(tfmax, max(tfmin, math.floor(tfr_crit)))
+        dQE = QE_img * CTE
+
+    return ENF, effReadnoise, frameTime, dQE, QE_img
+
+@dataclass
+class VarianceRates:
+    """
+    Holds variance rates for noise sources.
+
+    Attributes:
+        planet, speckle, locZodi, exoZodi, straylt, detDark, detCIC, detRead: Variance rates.
+    """
+    planet: float
+    speckle: float
+    locZodi: float
+    exoZodi: float
+    straylt: float
+    detDark: float
+    detCIC: float
+    detRead: float
+
+    @property
+    def total(self):
+        return sum(asdict(self).values())
+
+    def __repr__(self):
+        fields = asdict(self)
+        fields_str = ", ".join([f"{k}={v:.3e}" for k, v in fields.items()])
+        return f"VarianceRates({fields_str}, total={self.total:.3e})"
+
+def noiseVarianceRates(cphrate, QE, dQE, ENF, detNoiseRate, k_sp, k_det, k_lzo, k_ezo, f_SR, starFlux, selDeltaC, k_pp, cg, speckleThroughput, Acol):
+    """
+    Compute variance rates and residual speckle rate.
+
+    Args:
+        cphrate: corePhotonRates instance.
+        QE, dQE, ENF: Quantum efficiency parameters.
+        detNoiseRate: DetNoiseRates instance.
+        k_sp, k_det, k_lzo, k_ezo: RDI penalty factors.
+        f_SR: Spectral resolution factor.
+        starFlux: Target star flux.
+        selDeltaC: Selected delta contrast.
+        k_pp: Post-processing factor.
+        cg: CGParameters instance.
+        speckleThroughput: Speckle throughput.
+        Acol: Collecting area in m^2.
+
+    Returns:
+        Tuple (VarianceRates, residSpecRate).
+    """
+    residSpecRate = (
+        f_SR * starFlux * (selDeltaC / k_pp) *
+        cg.PSFpeakI * cg.CGintmpix * speckleThroughput * Acol * dQE
+    )
+
+    rates = VarianceRates(
+        planet=f_SR * ENF**2 * cphrate.planet * QE,
+        speckle=f_SR * ENF**2 * cphrate.speckle * dQE * k_sp,
+        locZodi=f_SR * ENF**2 * cphrate.locZodi * dQE * k_lzo,
+        exoZodi=f_SR * ENF**2 * cphrate.exoZodi * dQE * k_ezo,
+        straylt=f_SR * ENF**2 * cphrate.straylt * dQE * k_det,
+        detDark=f_SR * ENF**2 * detNoiseRate.dark * k_det,
+        detCIC=f_SR * ENF**2 * detNoiseRate.CIC * k_det,
+        detRead=f_SR * detNoiseRate.read * k_det,
+    )
+
+    return rates, residSpecRate
+
+def compute_tsnr(SNRdesired, planetSignalRate, nvRatesCore, residSpecRate):
+    """
+    Compute the required integration time and critical SNR.
+
+    Args:
+        SNRdesired: Target signal-to-noise ratio.
+        planetSignalRate: Planet signal rate in electrons/second.
+        nvRatesCore: VarianceRates instance.
+        residSpecRate: Residual speckle rate in electrons/second.
+
+    Returns:
+        Tuple (timeToSNR, criticalSNR).
+    """
+    denom = planetSignalRate**2 - SNRdesired**2 * residSpecRate**2
+    if denom <= 0:
+        raise ValueError("SNR condition is not achievable with given residual speckle level.")
+
+    timeToSNR = SNRdesired**2 * nvRatesCore.total / denom
+    criticalSNR = planetSignalRate / residSpecRate
+
+    return timeToSNR, criticalSNR
