@@ -1,4 +1,6 @@
-# CGISNR Estimation Tool for Exoplanet Imaging
+# Roman CGI Noise Estimation Tool
+
+# for Exoplanet Imaging
 
 This package contains a function library and associated constants that describe the noise properties of the Roman Space Telescope Coronagraph Instrument (CGI) when conducting Direct Imaging (DI) or Spectroscopic observations.  
 
@@ -9,6 +11,7 @@ The formulae and approach are documented in the SPIE JATIS paper on the CGI erro
 This Python package calculates the required integration time to achieve a target signal-to-noise ratio (SNR) in direct imaging of exoplanets. It models star and planet flux, coronagraph throughput, detector noise, and background noise (zodi, speckle, stray light).
 
 ## 📦 Features
+- Modular architecture
 - YAML-based scenario configuration
 - No hardcoded paths
 - Python 3.12+ required
@@ -49,33 +52,35 @@ $ source venv/bin/activate  # or venv\Scripts\activate on Windows
 # Install in editable mode
 $ pip install -e .
 
-# Run the default scenario
+# Run the script
 $ python main.py
-
-# Run a different config file
-$ python main.py --config CON_SPEC_NFB3_SPC.yml
 ```
 
 ## 🧪 Customizing Targets and SNR
-To use custom target parameters or SNR thresholds, edit `main.py` before the `run_pipeline()` follow this example:
+To use a custom observation scenario, SNR threshold, and target parameters, define them as a dictionary at the top of `main.py`:
 
 ```python
-target_params = {
-    'v_mag': 5.0,
-    'dist_pc': 10.0,
-    'specType': 'g0v',
-    'phaseAng_deg': 65,
-    'sma_AU': 4.1536,
-    'radius_Rjup': 5.6211,
-    'geomAlb_ag': 0.44765,
-    'exoZodi': 1,
+obs_params = {
+    "scenario": "OPT_IMG_NFB1_HLC.yml",
+    "target_params": {
+        'v_mag': 5.0,
+        'dist_pc': 10.0,
+        'specType': 'g0v',
+        'phaseAng_deg': 65,
+        'sma_AU': 4.1536,
+        'radius_Rjup': 5.6211,
+        'geomAlb_ag': 0.44765,
+        'exoZodi': 1,
+    },
+    "snr": 5.0
 }
-SNRdesired = 10.0  # instead of the default 5.0
-run_pipeline(config, DATA_DIR, target_params, SNRdesired)
+
+run_snr_scenario(obs_params)
 ```
+
+This keeps all user-modifiable values in one place, improving readability and flexibility.
 
 ## 🔧 Requirements
 - Python 3.12 or higher
 - Dependencies listed in `requirements.txt`
 
-## 
