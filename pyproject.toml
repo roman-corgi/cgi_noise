@@ -1,0 +1,45 @@
+[project]
+name = "cgi_noise"
+version = "1.0.0"
+description = "Noise modeling for the Roman Space Telescope Coronagraph Instrument"
+readme = "README.md"
+authors = [
+    { name = "California Institute of Technology", email = "your.email@caltech.edu" },
+]
+license = { file = "LICENSE" }
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=1.20",
+    "pandas>=1.0",
+    "pyyaml>=5.4",
+    "xlwings>=0.24",
+    "chardet>=4.0",
+    "prettytable>=2.0",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Astronomy",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-org/cgi_noise"
+Repository = "https://github.com/your-org/cgi_noise"
+
+[project.scripts]
+cgi-noise = "cgi_noise.main:main"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["cgi_noise"]
+
+[tool.setuptools.package-data]
+cgi_noise = ["data/*.csv", "data/*.yml"]
