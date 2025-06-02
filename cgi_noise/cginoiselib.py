@@ -36,43 +36,23 @@ def open_folder(*folders):
     folder = Path(filenamedir, *folders)
     return {file.name: file for file in folder.iterdir() if file.is_file()}
 
-def getScenFileNames(config):
+def getScenFileNames(config, data_dir):
     """
-    Retrieves a list of full file paths for scenario-specific CSV data files.
-
-    The function constructs paths based on filenames specified in the 'config'
-    dictionary, organized under subfolders within an "Data" directory.
-
-    Args:
-        config: A dictionary containing a 'DataSpecification' key, which itself is a
-                dictionary mapping descriptive keys (e.g., 'CoronagraphFile')
-                to base filenames (without .csv extension).
-
-    Returns:
-        A list of strings, where each string is the absolute path to a CSV file.
-        The order of files in the list corresponds to:
-        1. CoronagraphFile
-        2. QE_Curve_file
-        3. DetModelFile_CBE
-        4. StrayLightFRNfile
-        5. ThroughputFile
-        6. CalibrationFile
-        7. ContrastStabilityFile
+    Retrieves full paths for scenario-specific CSV data files using a base data directory.
     """
-    filenamedir = Path(os.getcwd())
     filenameList = []
     ffList = [
         ("Photometry", "Coronagraph_Data"),
-        ('Photometry', 'QE_Curve_Data'),
-        ('Photometry', 'Detector_Data'),
-        ('Photometry', 'StrayLight_Data'),
-        ('Photometry', 'Throughput_Data'),
-        ('Calibration', 'Calibration_Data'),
-        ('Cstability', 'ContrastStability_Data')
+        ("Photometry", "QE_Curve_Data"),
+        ("Photometry", "Detector_Data"),
+        ("Photometry", "StrayLight_Data"),
+        ("Photometry", "Throughput_Data"),
+        ("Calibration", "Calibration_Data"),
+        ("Cstability", "ContrastStability_Data")
     ]
     for folder, key in ffList:
         name = config['DataSpecification'][key] + ".csv"
-        path = filenamedir / "Data" / folder / name
+        path = data_dir / folder / name
         filenameList.append(str(path))
     return filenameList
 
@@ -175,9 +155,11 @@ def contrastStabilityPars(CS_Type, planetWA, CS_Data):
     return selDeltaC, rawContrast, SystematicCont, initStatRawContrast, rawContrast, IntContStab, ExtContStab
 
 
-def getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, CGdesignWL, omegaPSF):
-    FocalPlaneAtt = loadCSVrow(Path(os.getcwd(), 'Data', 'CONST_SNR_FPattributes.csv'))
-    AmiciPar = loadCSVrow(Path(os.getcwd(), 'Data', 'CONST_Amici_parameters.csv'))
+def getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, CGdesignWL, omegaPSF, data_dir):
+    
+    FocalPlaneAtt = loadCSVrow(data_dir / 'instrument' / 'CONST_SNR_FPattributes.csv')
+    AmiciPar = loadCSVrow(data_dir / 'instrument' / 'CONST_Amici_parameters.csv')
+
     """
     Calculates focal plane attributes based on the operational mode (Imaging or Spectroscopy).
 
@@ -427,7 +409,7 @@ def coronagraphParameters(cg_df, config, planetWA, DPM):
         CGcontrast=CGcontrast
     )
 
-def getSpectra(target, lam, bandWidth):
+def getSpectra(target, lam, bandWidth, data_dir):
     """
     Calculates stellar flux based on spectral type, V-magnitude, wavelength, and bandwidth.
 
@@ -446,7 +428,7 @@ def getSpectra(target, lam, bandWidth):
                                        for the target's spectral type.
             starFlux (float): Actual flux from the target star (ph/s/m^2) at Earth.
     """
-    spectra_path = Path(os.getcwd(), 'Data', 'Spectra', 'SPECTRA_ALL_BPGS.csv')
+    spectra_path = data_dir / 'Spectra' / 'SPECTRA_ALL_BPGS.csv'
     SPECTRA_Data = loadCSVrow(spectra_path)
 
     bandRange = SPECTRA_Data.df[abs(SPECTRA_Data.df['Wavelength_m'] - lam) <= (0.5 * bandWidth * lam)]
