@@ -58,5 +58,5 @@ r_lam_D,r_as,I,contrast,coreThruput,PSFpeak,area_sq_arcsec,occTrans
 8.7,0.436,1.99E-12,2.30E-09,0.04309,0.00063,0.00236,0.4258
 8.8,0.441,2.06E-12,2.38E-09,0.04367,0.00063,0.00241,0.42515
 8.9,0.446,2.11E-12,2.46E-09,0.0435,0.00063,0.00241,0.42293
-"# Sampling = 0.1.  This replaces hlc_20190210b,  having the same design. It's a representative case among 100 MC cases run right before CDR. Although lots have changed again (for worse) since then (~April this year), it’s the latest calculation.  The resolution has been increased per someone’s asking. - October 11, 2021",,,,,,,
+# Sampling = 0.1.  This replaces hlc_20190210b,  having the same design. It's a representative case among 100 MC cases run right before CDR. Although lots have changed again (for worse) since then (~April this year), it’s the latest calculation.  The resolution has been increased per someone’s asking. - October 11, 2021",,,,,,,
 # 6/22/23 Changed column names for python compatibility,,,,,,,
