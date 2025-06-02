@@ -9,17 +9,12 @@ are provided in the 'unitsConstants' module.
 from dataclasses import dataclass
 from pathlib import Path
 import os
-try:
-    import unitsConstants as uc
-except ModuleNotFoundError:
-    from . import unitsConstants as uc
+from cgi_noise import unitsConstants as uc
 import math
-try:
-    from loadCSVrow import loadCSVrow
-except ModuleNotFoundError:
-    from .loadCSVrow import loadCSVrow
+from cgi_noise.loadCSVrow import loadCSVrow
 from dataclasses import dataclass, asdict
 import numpy as np
+
 
 def open_folder(*folders):
     """
@@ -35,6 +30,7 @@ def open_folder(*folders):
     filenamedir = Path(os.getcwd())
     folder = Path(filenamedir, *folders)
     return {file.name: file for file in folder.iterdir() if file.is_file()}
+
 
 def getScenFileNames(config, data_dir):
     """
@@ -82,17 +78,17 @@ def workingAnglePars(CG_Data, CS_Data):
     """
     IWAc = CG_Data.df.at[0, 'r_lam_D']
     IWAs = CS_Data.df.at[0, 'r_lam_D']
-    
+
     if len(CG_Data.df) > 1:
         OWAc = CG_Data.df['r_lam_D'].iloc[-1]
     else:
         OWAc = CG_Data.df['r_lam_D'].iloc[0] + 3
-    
+
     if len(CS_Data.df) > 1:
         OWAs = CS_Data.df['r_lam_D'].iloc[-1]
     else:
         OWAs = CS_Data.df['r_lam_D'].iloc[0] + 3
-    
+
     # OWAs = CS_Data.df['r_lam_D'].iloc[-1]
     return max(IWAs, IWAc), min(OWAs, OWAc)
 
@@ -156,7 +152,7 @@ def contrastStabilityPars(CS_Type, planetWA, CS_Data):
 
 
 def getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, CGdesignWL, omegaPSF, data_dir):
-    
+
     FocalPlaneAtt = loadCSVrow(data_dir / 'instrument' / 'CONST_SNR_FPattributes.csv')
     AmiciPar = loadCSVrow(data_dir / 'instrument' / 'CONST_Amici_parameters.csv')
 
@@ -304,12 +300,12 @@ class Target:
         """
         sep_mas = ((sma_AU * uc.AU * math.sin(math.radians(phaseAng_deg))) / (dist_pc * uc.pc)) / uc.mas
         return sep_mas
-    
+
     @staticmethod
     def albedo_from_geomAlbedo(phaseAng_deg,geomAlb_ag):
         alpha = phaseAng_deg * uc.deg
         return 1/np.pi * (np.sin(alpha) + (np.pi - alpha)*np.cos(alpha))*geomAlb_ag
-    
+
     @staticmethod
     def fluxRatio_to_deltaMag(fluxRatio):
         """Converts a flux ratio to a difference in magnitudes.
@@ -369,10 +365,10 @@ def coronagraphParameters(cg_df, config, planetWA, DPM):
     Returns:
         A CGParameters dataclass instance populated with calculated values.
     """
- 
+
     indWA = cg_df[(cg_df.r_lam_D <= planetWA)]['r_lam_D'].idxmax(axis=0)
 
-        
+
     omegaPSF = cg_df.loc[indWA, 'area_sq_arcsec']
     CGintSamp = cg_df.loc[2, 'r_lam_D'] - cg_df.loc[1, 'r_lam_D']
     CGradius_arcsec = cg_df.at[indWA, 'r_as']
@@ -382,7 +378,7 @@ def coronagraphParameters(cg_df, config, planetWA, DPM):
     CG_PSFarea_sqlamD = omegaPSF / (CGdesignWL / uc.arcsec)**2
 
     CGintensity = cg_df.loc[indWA, 'I']
-    CG_occulter_transmission = cg_df.at[indWA, 'occTrans']  
+    CG_occulter_transmission = cg_df.at[indWA, 'occTrans']
     CGcontrast = cg_df.loc[indWA, 'contrast']
 
     ObservationType = config['DataSpecification']['ObservationCase']
@@ -390,10 +386,10 @@ def coronagraphParameters(cg_df, config, planetWA, DPM):
         # for Kappa_c, Core Throughput use TVAC measurement based on HLC Band 1
         Kappa_c_meas = config['TVACmeasured']['Kappa_c_HLCB1']
         CoreThroughput = config['TVACmeasured']['CoreThput_HLCB1']
-        PSFpeakI = CoreThroughput * Kappa_c_meas / CGintmpix        
-    else:        
-        CoreThroughput = cg_df.loc[indWA, 'coreThruput'] 
-        PSFpeakI = cg_df.loc[indWA, 'PSFpeak']  
+        PSFpeakI = CoreThroughput * Kappa_c_meas / CGintmpix
+    else:
+        CoreThroughput = cg_df.loc[indWA, 'coreThruput']
+        PSFpeakI = cg_df.loc[indWA, 'PSFpeak']
 
     return CGParameters(
         CGcoreThruput = CoreThroughput,
@@ -587,7 +583,7 @@ def compute_throughputs(THPT_Data, cg, ezdistrib="falloff"):
     )
 
     planetThroughput  = thput.refl * thput.filt * thput.polr * thput.core
-    speckleThroughput = thput.refl * thput.filt * thput.polr 
+    speckleThroughput = thput.refl * thput.filt * thput.polr
     locZodiThroughput = thput.refl * thput.filt * thput.polr * thput.occt
     exoZodiThroughput = locZodiThroughput * distFactor
 
@@ -750,7 +746,7 @@ def noiseVarianceRates(cphrate, QE, dQE, ENF, detNoiseRate, k_sp, k_det, k_lzo, 
     # Note: the planet rate, following the EB model, differs from the others in using QE instead of dQE
     # this is the image area QE instead of delivered QE: this practice will need to be revisited
     rates = VarianceRates(
-        planet  = f_SR * ENF**2 * cphrate.planet  * QE,  
+        planet  = f_SR * ENF**2 * cphrate.planet  * QE,
         speckle = f_SR * ENF**2 * cphrate.speckle * dQE * k_sp,
         locZodi = f_SR * ENF**2 * cphrate.locZodi * dQE * k_lzo,
         exoZodi = f_SR * ENF**2 * cphrate.exoZodi * dQE * k_ezo,

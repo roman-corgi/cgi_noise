@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>= 77.0.3", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cgi_noise"
+dynamic = ["dependencies", "version"]
+requires-python = ">= 3.10"
+description = "SNR estimation tool for exoplanet direct imaging"
+readme = "README.md"
+license = "BSD-3-Clause"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Education",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Mathematics",
+  "Topic :: Scientific/Engineering :: Physics",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+
+[project.urls]
+Homepage = "https://github.com/roman-corgi/cgi_noise"
+Repository = "https://github.com/roman-corgi/cgi_noise"
+Issues = "https://github.com/roman-corgi/cgi_noise/issues"
+
+[tool.setuptools.dynamic]
+version = {attr = "cgi_noise.__version__"}
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.package-data]
+cgi_noise = ["*.csv", "*.xlsx", "*.yml"]
