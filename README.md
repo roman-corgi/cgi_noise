@@ -58,7 +58,7 @@ $ python Main.py
 ```
 
 ## 🧪 Customizing Targets and SNR
-To use a custom observation scenario, SNR threshold, and target parameters, define them as a dictionary at the top of `main.py`:
+To use a custom observation scenario, SNR threshold, and target parameters, define them as a dictionary at the top of `Main.py`:
 
 ```python
 obs_params = {
