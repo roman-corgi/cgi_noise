@@ -14,13 +14,13 @@ This Python package calculates the required integration time to achieve a target
 - Modular architecture
 - YAML-based scenario configuration
 - No hardcoded paths
-- Python 3.12+ required
+- Python 3.10+ required
 - Ready for command-line or notebook use
 
 ## 📁 Folder Structure
 ```
 cgi_noise/
-├── main.py                       # Entry point
+├── Main.py                       # Entry point
 ├── setup.py                      # Installation script
 ├── requirements.txt              # Python dependencies
 ├── README.md                     # This file
@@ -38,6 +38,7 @@ cgi_noise/
         ├── Cstability/
         └── Spectra/
 ```
+Upon import, `cgi_noise` creates a new environment variable (`CGI_NOISE_DATA_DIR`) that points to the location of the data directory wherever it is installed. 
 
 ## 🚀 Quick Start
 ```bash
@@ -53,7 +54,7 @@ $ source venv/bin/activate  # or venv\Scripts\activate on Windows
 $ pip install -e .
 
 # Run the script
-$ python main.py
+$ python Main.py
 ```
 
 ## 🧪 Customizing Targets and SNR
@@ -81,6 +82,6 @@ run_snr_scenario(obs_params)
 This keeps all user-modifiable values in one place, improving readability and flexibility.
 
 ## 🔧 Requirements
-- Python 3.12 or higher
+- Python 3.10 or higher
 - Dependencies listed in `requirements.txt`
 
