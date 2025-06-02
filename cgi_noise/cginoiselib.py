@@ -6,73 +6,64 @@ optical and detector models, noise variance calculations, and astrophysical flux
 All units are assumed to follow SI unless otherwise noted, and helper constants
 are provided in the 'unitsConstants' module.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from pathlib import Path
 import os
-try:
-    import unitsConstants as uc
-except ModuleNotFoundError:
-    from . import unitsConstants as uc
 import math
-try:
-    from loadCSVrow import loadCSVrow
-except ModuleNotFoundError:
-    from .loadCSVrow import loadCSVrow
-from dataclasses import dataclass, asdict
 import numpy as np
+from . import check_data_path
+from .unitsConstants import mas, nm, jupiterRadius, AU, arcsec, h_planck, c_light, sunAbsMag
+from .loadCSVrow import loadCSVrow
 
+# open_folder
 def open_folder(*folders):
     """
     Constructs a path to a subfolder and returns a dictionary of file paths within it.
 
     Args:
-        *folders: A sequence of folder names to be joined to the current working directory.
+        *folders: A sequence of folder names to be joined to the data directory.
 
     Returns:
         A dictionary where keys are filenames (str) and values are Path objects
         for each file in the specified directory.
     """
-    filenamedir = Path(os.getcwd())
-    folder = Path(filenamedir, *folders)
-    return {file.name: file for file in folder.iterdir() if file.is_file()}
+    data_root = check_data_path()
+    data_path = data_root / Path(*folders)
+    if data_path.exists():
+        return {file.name: file for file in data_path.iterdir() if file.is_file()}
+    
+    raise FileNotFoundError(
+        f"Data folder 'data/{'/'.join(folders)}' not found. "
+        "Ensure the 'data/' folder from https://github.com/roman-corgi/cgi_noise is accessible."
+    )
 
-def getScenFileNames(config):
+def getScenFileNames(config, data_path=None):
     """
     Retrieves a list of full file paths for scenario-specific CSV data files.
 
-    The function constructs paths based on filenames specified in the 'config'
-    dictionary, organized under subfolders within an "Data" directory.
-
     Args:
-        config: A dictionary containing a 'DataSpecification' key, which itself is a
-                dictionary mapping descriptive keys (e.g., 'CoronagraphFile')
-                to base filenames (without .csv extension).
+        config: A dictionary containing a 'DataSpecification' key with filenames.
+        data_path: Path to the data/ folder (optional, defaults to check_data_path()).
 
     Returns:
-        A list of strings, where each string is the absolute path to a CSV file.
-        The order of files in the list corresponds to:
-        1. CoronagraphFile
-        2. QE_Curve_file
-        3. DetModelFile_CBE
-        4. StrayLightFRNfile
-        5. ThroughputFile
-        6. CalibrationFile
-        7. ContrastStabilityFile
+        A list of strings, each an absolute path to a CSV file.
     """
-    filenamedir = Path(os.getcwd())
+    if data_path is None:
+        data_path = check_data_path()
+    
     filenameList = []
     ffList = [
         ("Photometry", "Coronagraph_Data"),
-        ('Photometry', 'QE_Curve_Data'),
-        ('Photometry', 'Detector_Data'),
-        ('Photometry', 'StrayLight_Data'),
-        ('Photometry', 'Throughput_Data'),
-        ('Calibration', 'Calibration_Data'),
-        ('Cstability', 'ContrastStability_Data')
+        ("Photometry", "QE_Curve_Data"),
+        ("Photometry", "Detector_Data"),
+        ("Photometry", "StrayLight_Data"),
+        ("Photometry", "Throughput_Data"),
+        ("Calibration", "Calibration_Data"),
+        ("Cstability", "ContrastStability_Data")
     ]
     for folder, key in ffList:
         name = config['DataSpecification'][key] + ".csv"
-        path = filenamedir / "Data" / folder / name
+        path = data_path / folder / name
         filenameList.append(str(path))
     return filenameList
 
