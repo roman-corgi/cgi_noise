@@ -4,7 +4,7 @@ It calculates various parameters related to the target star and planet, instrume
 and ultimately estimates the time required to achieve a desired signal-to-noise ratio (SNR) 
 for detecting the exoplanet.
 
-The script performs the following major steps:
+The pipeline performs the following major steps:
 1.  Loads a scenario configuration from a YAML file.
 2.  Defines astronomical and instrument constants.
 3.  Sets up the target host star and exoplanet parameters.
@@ -49,9 +49,20 @@ def run_snr_scenario(config_filename: str):
     except yaml.YAMLError as e:
         print(f"YAML error: {e}")
         sys.exit(1)
-
-    # Run the full simulation pipeline
-    run_pipeline(config, DATA_DIR)
+        
+    target_params = {
+        'v_mag': 5.0,
+        'dist_pc': 10.0,
+        'specType': 'g0v',
+        'phaseAng_deg': 65,
+        'sma_AU': 4.1536,
+        'radius_Rjup': 5.6211,
+        'geomAlb_ag': 0.44765,
+        'exoZodi': 1,
+    }
+    SNRdesired = 5.0
+    
+    run_pipeline(config, DATA_DIR, target_params, SNRdesired)
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ class corePhotonRates:
     straylt: float
     total: float = 0.0
 
-def run_pipeline(config, DATA_DIR):
+def run_pipeline(config, DATA_DIR, target_params, SNRdesired):
     DPM = config['instrument']['Diam']
     lam = config['instrument']['wavelength']
     lamD = lam / DPM
@@ -25,16 +25,7 @@ def run_pipeline(config, DATA_DIR):
     print(f"Central wavelength: {lam / uc.nm:.1f} nm, with {bandWidth * 100:.0f}% BW\n")
     print(f"Lambda/D: {lamD / uc.mas:.3f} mas")
 
-    target = fl.Target(
-        v_mag=5.0,
-        dist_pc=10.0,
-        specType='g0v',
-        phaseAng_deg=65,
-        sma_AU=4.1536,
-        radius_Rjup=5.6211,
-        geomAlb_ag=0.44765,
-        exoZodi=1,
-    )
+    target = fl.Target(**target_params)
     sep_mas = target.phaseAng_to_sep(target.sma_AU, target.dist_pc, target.phaseAng_deg)
     target.albedo = target.albedo_from_geomAlbedo(target.phaseAng_deg, target.geomAlb_ag)
 
@@ -119,7 +110,8 @@ def run_pipeline(config, DATA_DIR):
         throughput_rates['speckle'], Acol
     )
 
-    SNRdesired = 5.0
+    # SNR threshold from caller
+    # SNRdesired is now passed in as an argument
     planetSignalRate = f_SR * cphrate.planet * dQE
     timeToSNR, criticalSNR = fl.compute_tsnr(SNRdesired, planetSignalRate, nvRatesCore, residSpecRate)
 
