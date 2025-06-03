@@ -57,7 +57,7 @@ def run_pipeline(config, DATA_DIR, target_params, SNRdesired):
     print(f"Selected Delta Contrast: {selDeltaC:.3e}")
 
     cg = fl.coronagraphParameters(CG_Data.df, config, planetWA, DPM)
-    f_SR, _, detPixSize_m, mpix, _ = fl.getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, cg.CGdesignWL, cg.omegaPSF, DATA_DIR)
+    f_SR, _, detPixSize_m, mpix = fl.getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, cg.CGdesignWL, cg.omegaPSF, DATA_DIR)
 
     inBandFlux0_sum, inBandZeroMagFlux, starFlux = fl.getSpectra(target, lam, bandWidth, DATA_DIR)
     print(f"Star Flux = {starFlux:.3e} ph/s/m^2")

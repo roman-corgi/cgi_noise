@@ -207,21 +207,21 @@ def getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, C
         Rlamsq = AmiciPar.df.loc[0, 'lam_squared']
         Rlam = AmiciPar.df.loc[0, 'lam']
         Rconst = AmiciPar.df.loc[0, 'constant']
-        ResPowatPSF = Rconst + Rlam * lam + Rlamsq * lam**2
+        ResPowatPSF = Rconst + Rlam * (lam/uc.nm) + Rlamsq * (lam/uc.nm)**2
         dpix_dlam = ResPowatPSF * xpixPerCor / lam
         xpixPerSpec = dpix_dlam * lam / resolution
         mpix = xpixPerSpec * ypixPerCor
-        pixPlateSc = CritLam / DPM / 2 / uc.mas
+        # pixPlateSc = CritLam / DPM / 2 / uc.mas
 
     elif opMode == "IMG":
         f_SR = 1
         CritLam = FocalPlaneAtt.df.at[0, 'Critical_Lambda_m']
         mpix = omegaPSF * uc.arcsec**2 * (lam / CGdesignWL)**2 * (2 * DPM / CritLam)**2
-        pixPlateSc = CritLam / DPM / 2 / uc.mas
+        # pixPlateSc = CritLam / DPM / 2 / uc.mas
     else:
         raise Exception("getFocalPlaneAttributes: Valid Operational Modes are IMG and SPEC")
 
-    return f_SR, CritLam, detPixSize_m, mpix, pixPlateSc
+    return f_SR, CritLam, detPixSize_m, mpix 
 
 
 @dataclass
