@@ -2,7 +2,7 @@
 # Optimistic Case
 
 DataSpecification:
-  ObservationCase: 'CON_IMG_NFB1_HLC' # This scenario as a whole
+  ObservationCase: 'OPT_IMG_NFB1_HLC' # This scenario as a whole
   Coronagraph_Data: 'CGPERF_HLC_NFB1_190210'
   QE_Curve_Data: 'DET_QE_e2v_Spec'
   Detector_Data: 'DET_CBE_250530'
