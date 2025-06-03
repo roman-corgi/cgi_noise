@@ -17,7 +17,7 @@ instrument:
   Acol: 4.385 # total collecting area, meters^2
   wavelength: 825.0e-9 
   bandwidth: 0.10
-  CGtype: 'HLC'
+  CGtype: 'SPC'
   OpMode: 'IMG' # IMG or SPEC for imaging or spectroscopy
   dutyFactor: 0.7
   R_required: NaN
