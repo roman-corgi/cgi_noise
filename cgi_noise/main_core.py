@@ -96,7 +96,7 @@ def run_pipeline(config, DATA_DIR, target_params, SNRdesired):
 
     detNoiseRate = fl.detector_noise_rates(DET_CBE_Data, 21, frameTime, mpix, True)
 
-    rdi_penalty = fl.rdi_noise_penalty(target, inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_tTar, 'a0v', 2.26)
+    rdi_penalty = fl.rdi_noise_penalty(inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_tTar, 'a0v', 2.26)
     k_sp = rdi_penalty['k_sp']
     k_det = rdi_penalty['k_det']
     k_lzo = rdi_penalty['k_lzo']

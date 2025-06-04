@@ -595,7 +595,7 @@ def compute_throughputs(THPT_Data, cg, ezdistrib="falloff"):
     }
 
 
-def rdi_noise_penalty(target, inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_tTar, RefStarSpecType, RefStarVmag):
+def rdi_noise_penalty(inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_tTar, RefStarSpecType, RefStarVmag):
     """
     Computes noise penalty factors due to Reference Differential Imaging (RDI).
 
@@ -603,7 +603,6 @@ def rdi_noise_penalty(target, inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_
     for different noise components when using RDI.
 
     Args:
-        target: Target dataclass instance for the science target.
         inBandFlux0_sum: Pandas Series of integrated zero-magnitude flux (ph/s/m^2)
                          indexed by spectral type.
         starFlux: Flux of the science target star in ph/s/m^2.
