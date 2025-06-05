@@ -10,8 +10,8 @@ DataSpecification:
   CS_Type: 'MCBE'
   Throughput_Data: 'THPT_HLC_NFB1_240725'
   Calibration_Data: 'CAL_EB_TTR_241227'
-  StrayLight_Data: 'STRAY_CBE_210315'
-  
+  StrayLight_Data: 'STRAY_CBE_250605'  # <=======  NOTE!!!!
+ 
 instrument:
   Diam: 2.363
   Acol: 4.385 # total collecting area, meters^2

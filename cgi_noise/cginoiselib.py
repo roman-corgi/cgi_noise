@@ -441,22 +441,12 @@ def getSpectra(target, lam, bandWidth, data_dir):
 
     return inBandFlux0_sum, inBandZeroMagFlux, starFlux
 
-def getStrayLightfromfile(scenario,perfLevel,STRAY_FRN_Data):
-    # rowID = STRAY_FRN_Data.df.loc[STRAY_FRN_Data.df['PerfLevel']==perfLevel].index[0]
-    rowID = STRAY_FRN_Data.df.loc[STRAY_FRN_Data.df['PerfLevel']==perfLevel].index[0]
-    #scenario = scenarioData.at['Scenario','Latest']
+def getStrayLightfromfile(ObservationCase,perfLevel,STRAY_FRN_Data):
+
     try:
-        strayLight = STRAY_FRN_Data.df.at[rowID,scenario]
+        strayLight = STRAY_FRN_Data.df.at[0,ObservationCase]
     except:
-        #print(scenario)
-        scenario = scenario.replace('DRM','EB')
-        #print(scenario)
-        try:
-            strayLight = STRAY_FRN_Data.df.at[rowID,scenario]
-        except:
-            raise Exception('Stray needs help')
-            strayLight = None
-    #print(f'strayLight = {strayLight}')
+        raise Exception(f'Stray Light data for Observation Case {ObservationCase} Not found. ')
     return strayLight
 
 
