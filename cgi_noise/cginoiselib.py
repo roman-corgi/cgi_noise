@@ -136,19 +136,19 @@ def contrastStabilityPars(CS_Type, planetWA, CS_Data):
 
     ExtContStab = CS_Data.df.at[indCS, fnECS] * uc.ppb
     IntContStab = CS_Data.df.at[indCS, fnICS] * uc.ppb
-    rawContrast = CS_Data.df.at[indCS, fnARC] * uc.ppb
-    initStatRawContrast = CS_Data.df.at[indCS, fnISRC] * uc.ppb
+    AvgRawC  = CS_Data.df.at[indCS, fnARC] * uc.ppb
+    initStatRaw = CS_Data.df.at[indCS, fnISRC] * uc.ppb
 
     if nCols == 16 and 'SystematicC' in headers[13]:
-        SystematicCont = CS_Data.df.at[indCS, fnSC] * uc.ppb
-        selDeltaC = math.sqrt((ExtContStab**2) + (IntContStab**2) + (SystematicCont**2))
+        SystematicC = CS_Data.df.at[indCS, fnSC] * uc.ppb
+        selDeltaC = math.sqrt((ExtContStab**2) + (IntContStab**2) + (SystematicC**2))
     elif nCols == 13:
-        SystematicCont = 0
+        SystematicC = 0
         selDeltaC = math.sqrt((ExtContStab**2) + (IntContStab**2))
     else:
         raise IndexError('The contrast stability file referenced is not formatted as expected.')
 
-    return selDeltaC, rawContrast, SystematicCont, initStatRawContrast, rawContrast, IntContStab, ExtContStab
+    return selDeltaC, AvgRawC, SystematicC, initStatRaw, IntContStab, ExtContStab
 
 
 def getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, CGdesignWL, omegaPSF, data_dir):

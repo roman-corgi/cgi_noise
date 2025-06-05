@@ -1,3 +1,3 @@
 r_lam_D,REQ_ExtContStab,REQ_IntContStab,REQ_SystematicC,REQ_AvgRawContrast,REQ_InitStatContrast,ICBE_ExtContStab,ICBE_IntContStab,ICBE_SystematicC,ICBE_AvgRawContrast,ICBE_InitStatContrast,MCBE_ExtContStab,MCBE_IntContStab,MCBE_SystematicC,MCBE_AvgRawContrast,MCBE_InitStatContrast
-6,6.863621319,21.10187328,6.364901826,161.8160366,150,3.011099265,1.324550483,1.837659392,35.05923764,33.33,0.633604157,1.290350041,0.993600524,34.46159676,33.33
-#  240425 update of the TVAC informed nfov 6-9 contrast numbers (with an optimistic coherent value), and thermal (which basically mean zero).",,,,,,,,,,,,,,,
+6,6.863621319,21.10187328,6.364901826,161.8160366,150,3.011099265,1.324550483,1.837659392,35.05923764,33.33,0.63,1.29,0.99,34.46,33.33
+#  240425 update of the TVAC informed nfov 6-9 contrast numbers (with an optimistic coherent value)  and thermal (which basically mean zero). -- 6/4/24/email,,,,,,,,,,,,,,,
