@@ -31,7 +31,7 @@ if __name__ == "__main__":
     print(f"Run started at: {datetime.now()}")
 
     obs_params = {
-        "scenario": 'OPT_IMG_WFB4_SPC.yml', #'OPT_IMG_NFB1_HLC.yml', #   "OPT_IMG_NFB1_HLC.yml", # 'CON_IMG_NFB1_HLC.yml' # CON_SPEC_NFB3_SPC.yml
+        "scenario": 'CON_IMG_WFB4_SPC.yml', #'OPT_IMG_NFB1_HLC.yml', #   "OPT_IMG_NFB1_HLC.yml", # 'CON_IMG_NFB1_HLC.yml' # CON_SPEC_NFB3_SPC.yml
         "target_params": {
             "v_mag": 5.0,
             "dist_pc": 10.0,

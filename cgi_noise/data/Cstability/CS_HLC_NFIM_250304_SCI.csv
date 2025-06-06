@@ -3,4 +3,4 @@ r_lam_D,REQ_ExtContStab,REQ_IntContStab,REQ_SystematicC,REQ_AvgRawContrast,REQ_I
 4,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.284,1.325,1.211,11.569,11
 5,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.155,0.646,0.504,6.217,6
 8,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.128,0.541,0.366,7.125,7
-# Comments:,"Brian Kern  20250226stability.xlsm emailed to BN on 2/26/25 based on HZ analysis  for flight-like expectations of initial raw contrast, without MUF (also includes the systematic columns as it should)",,,,,,,,,,,,,,
+# Comments:,"20250226stability.xlsm emailed on 2/26/25 based on xxanalysis  for flight-like expectations of initial raw contrast, without MUF (also includes the systematic columns as it should)",,,,,,,,,,,,,,
