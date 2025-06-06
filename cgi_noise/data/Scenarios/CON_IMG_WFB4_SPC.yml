@@ -2,7 +2,7 @@
 # Conservative Case
 
 DataSpecification:
-  ObservationCase: 'CON_IMG_WFB4_SPC.yml' # This scenario as a whole
+  ObservationCase: 'CON_IMG_WFB4_SPC' # This scenario as a whole
   Coronagraph_Data: 'CGPERF_SPC_WFB4_200610'
   QE_Curve_Data: 'DET_QE_e2v_Spec'
   Detector_Data: 'DET_CBE_250530'
@@ -10,7 +10,7 @@ DataSpecification:
   CS_Type: 'ICBE'
   Throughput_Data: 'THPT_SPC_WFB4_200730'
   Calibration_Data: 'CAL_EB_TTR_241227'
-  StrayLight_Data: 'STRAY_CBE_210315'
+  StrayLight_Data: 'STRAY_CBE_250605'
   
 instrument:
   Diam: 2.363

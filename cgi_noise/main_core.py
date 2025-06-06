@@ -144,7 +144,7 @@ def run_pipeline(config, DATA_DIR, target_params, SNRdesired):
     print(table)
     
     print(f"\nTarget SNR = {SNRdesired:.1f} \nCritical SNR = {criticalSNR:.2f}")
-    print(f"\nTime to SNR = {timeToSNR:.1f} seconds or {timeToSNR/uc.hour:.3f} hours\n")
+    print(f"Time to SNR = {timeToSNR:.1f} seconds or {timeToSNR/uc.hour:.3f} hours\n")
 
     if timeToSNR > intTimeDutyFactor * 100 * uc.hour:
         print(f"Warning: Time to SNR ({timeToSNR/uc.hour:.2f} hrs) exceeds usable integration time ({(intTimeDutyFactor * 100 * uc.hour)/uc.hour:.2f} hrs).")
