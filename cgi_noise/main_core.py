@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import cgi_noise.cginoiselib as fl
 import cgi_noise.unitsConstants as uc
 from prettytable import PrettyTable
+import os
 
 @dataclass
 class corePhotonRates:
@@ -15,6 +16,8 @@ class corePhotonRates:
     total: float = 0.0
 
 def run_pipeline(config, DATA_DIR, target_params, SNRdesired):
+    ObservationCase = config['DataSpecification']['ObservationCase']
+    
     DPM = config['instrument']['Diam']
     lam = config['instrument']['wavelength']
     lamD = lam / DPM
@@ -38,7 +41,8 @@ def run_pipeline(config, DATA_DIR, target_params, SNRdesired):
 
     IWA, OWA = fl.workingAnglePars(CG_Data, CS_Data)
     planetWA = sep_mas * uc.mas / lamD
-
+    
+    # from prettytable import PrettyTable
     table = PrettyTable()
     table.field_names = ['planet WA', 'phase', 'dist', 'sma', 'sep', 'lam/D', "IWA", "OWA"]
     table.add_row([f'{planetWA:.2f}', f'{target.phaseAng_deg:.2f}', f"{target.dist_pc:.2f}", f'{target.sma_AU:.2f}', f'{sep_mas:.2f}', f'{lamD/uc.mas:.2f}', f'{IWA:.2f}', f'{OWA:.2f}'])
@@ -52,9 +56,7 @@ def run_pipeline(config, DATA_DIR, target_params, SNRdesired):
     elif planetWA < (IWA - tol) or planetWA > (OWA + tol):
         raise ValueError(f"Planet WA={planetWA:.1f} outside of IWA={IWA:.1f}, OWA={OWA:.1f}.")
 
-    selDeltaC, rawContrast, _, _, _, IntContStab, ExtContStab = fl.contrastStabilityPars(CS_Type, planetWA, CS_Data)
-    print(f"Raw Contrast: {rawContrast:.3e}")
-    print(f"Selected Delta Contrast: {selDeltaC:.3e}")
+    selDeltaC, AvgRawC, SystematicC, initStatRaw, IntContStab, ExtContStab = fl.contrastStabilityPars(CS_Type, planetWA, CS_Data)
 
     cg = fl.coronagraphParameters(CG_Data.df, config, planetWA, DPM)
     f_SR, _, detPixSize_m, mpix = fl.getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, cg.CGdesignWL, cg.omegaPSF, DATA_DIR)
@@ -75,12 +77,12 @@ def run_pipeline(config, DATA_DIR, target_params, SNRdesired):
 
     thput, throughput_rates = fl.compute_throughputs(THPT_Data, cg, "uniform")
     Acol = (np.pi / 4) * DPM**2
-    stray_ph_s_mm2 = fl.getStrayLightfromfile('Threshold IMG NF B1', 'CBE', STRAY_FRN_Data)
+    stray_ph_s_mm2 = fl.getStrayLightfromfile(ObservationCase, 'CBE', STRAY_FRN_Data)
     stray_ph_s_pix = stray_ph_s_mm2 * (1 / uc.mm**2) * detPixSize_m**2
 
     cphrate = corePhotonRates(
         planet=planetFlux * throughput_rates["planet"] * Acol,
-        speckle=starFlux * rawContrast * cg.PSFpeakI * cg.CGintmpix * throughput_rates["speckle"] * Acol,
+        speckle=starFlux * AvgRawC * cg.PSFpeakI * cg.CGintmpix * throughput_rates["speckle"] * Acol,
         locZodi=locZodiAngFlux * cg.omegaPSF * throughput_rates["local_zodi"] * Acol,
         exoZodi=exoZodiAngFlux * cg.omegaPSF * throughput_rates["exo_zodi"] * Acol,
         straylt=stray_ph_s_pix * mpix
@@ -114,9 +116,35 @@ def run_pipeline(config, DATA_DIR, target_params, SNRdesired):
     # SNRdesired is now passed in as an argument
     planetSignalRate = f_SR * cphrate.planet * dQE
     timeToSNR, criticalSNR = fl.compute_tsnr(SNRdesired, planetSignalRate, nvRatesCore, residSpecRate)
+    
+    csfilename = None
+    for filepath in filenameList:
+        base = os.path.basename(filepath)
+        if base.startswith("CS_"):
+            csfilename = os.path.splitext(base)[0]
+            break
 
+
+    print("\nTotal noise variance rate beakdown:")
+    table = PrettyTable()
+    table.field_names = ['planet', 'speckle', 'local Zodi', 'exo Zodi', 'Stray']
+    table.add_row([f"{nvRatesCore.planet:.4f}",f"{nvRatesCore.speckle:.4f}",f"{nvRatesCore.locZodi:.4f}",f"{nvRatesCore.exoZodi:.4f}",f"{nvRatesCore.straylt:.3e}",])
+    print(table)
+    
+    print("\nContrast Stability Numbers:") 
+    table = PrettyTable()
+    table.field_names = ['CS case', 'DeltaC',  'External CS', 'Internal CS', 'Systematic', 'Avg Raw', 'initStatRaw']
+    table.add_row([f'{csfilename}', f'{selDeltaC:.2e}', f'{ExtContStab:.2e}', f'{IntContStab:.2e}', f'{SystematicC:.2e}', f'{AvgRawC:.2e}', f"{initStatRaw:.2e}"])
+    print(table)
+    
+    print(f"\nCalculation ingredients for Time to SNR = {SNRdesired:.1f}:")
+    table = PrettyTable()
+    table.field_names = [ 'planet rate', 'total noise rate', 'resid specle rate']
+    table.add_row([ f'{planetSignalRate:.3f}', f"{nvRatesCore.total:.3f}", f'{residSpecRate:.4f}'])
+    print(table)
+    
     print(f"\nTarget SNR = {SNRdesired:.1f} \nCritical SNR = {criticalSNR:.2f}")
-    print(f"Time to SNR = {timeToSNR:.1f} seconds or {timeToSNR/uc.hour:.3f} hours")
+    print(f"Time to SNR = {timeToSNR:.1f} seconds or {timeToSNR/uc.hour:.3f} hours\n")
 
     if timeToSNR > intTimeDutyFactor * 100 * uc.hour:
         print(f"Warning: Time to SNR ({timeToSNR/uc.hour:.2f} hrs) exceeds usable integration time ({(intTimeDutyFactor * 100 * uc.hour)/uc.hour:.2f} hrs).")

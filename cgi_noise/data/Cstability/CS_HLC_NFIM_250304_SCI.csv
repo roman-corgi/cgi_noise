@@ -1,0 +1,6 @@
+r_lam_D,REQ_ExtContStab,REQ_IntContStab,REQ_SystematicC,REQ_AvgRawContrast,REQ_InitStatContrast,ICBE_ExtContStab,ICBE_IntContStab,ICBE_SystematicC,ICBE_AvgRawContrast,ICBE_InitStatContrast,MCBE_ExtContStab,MCBE_IntContStab,MCBE_SystematicC,MCBE_AvgRawContrast,MCBE_InitStatContrast
+3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.373,1.694,1.789,16.843,16
+4,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.284,1.325,1.211,11.569,11
+5,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.155,0.646,0.504,6.217,6
+8,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.128,0.541,0.366,7.125,7
+# Comments:,"20250226stability.xlsm emailed on 2/26/25 based on xxanalysis  for flight-like expectations of initial raw contrast, without MUF (also includes the systematic columns as it should)",,,,,,,,,,,,,,

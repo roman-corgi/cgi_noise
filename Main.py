@@ -4,6 +4,7 @@ import sys
 import yaml
 from datetime import datetime
 import os
+import argparse
 
 
 def run_snr_scenario(obs_params):
@@ -27,18 +28,56 @@ def run_snr_scenario(obs_params):
     run_pipeline(config, DATA_DIR, obs_params["target_params"], obs_params["snr"])
 
 
-if __name__ == "__main__":
+def main():
+    scenarios = [
+        "OPT_IMG_NFB1_HLC.yml",
+        "CON_IMG_NFB1_HLC.yml",
+        "OPT_SPEC_NFB3_SPC.yml",
+        "CON_SPEC_NFB3_SPC.yml",
+        "OPT_IMG_WFB4_SPC.yml",
+        "CON_IMG_WFB4_SPC.yml",
+    ]
+
+    parser = argparse.ArgumentParser(
+        description="Run cgi_noise integration time calculation."
+    )
+    parser.add_argument(
+        "-s",
+        "--scenario",
+        nargs="?",
+        type=str,
+        help="Scenario Name (string).",
+        default=scenarios[0],
+        choices=scenarios,
+    )
+    parser.add_argument(
+        "--sma", nargs="?", type=float, default=4.1536, help="Planet sma in AU (float)."
+    )
+    parser.add_argument(
+        "--radius",
+        nargs="?",
+        type=float,
+        default=5.6211,
+        help="Planet radius in R_jupiter (float).",
+    )
+
+    args = parser.parse_args()
+    scenario = args.scenario
+    assert scenario in scenarios, f"Scenario must be one of: {','.join(scenarios)}."
+    sma = args.sma
+    radius = args.radius
+
     print(f"Run started at: {datetime.now()}")
 
     obs_params = {
-        "scenario": "CON_SPEC_NFB3_SPC.yml",
+        "scenario": scenario,
         "target_params": {
             "v_mag": 5.0,
             "dist_pc": 10.0,
             "specType": "g0v",
             "phaseAng_deg": 65,
-            "sma_AU": 4.1536,
-            "radius_Rjup": 5.6211,
+            "sma_AU": sma,
+            "radius_Rjup": radius,
             "geomAlb_ag": 0.44765,
             "exoZodi": 1,
         },
@@ -47,3 +86,7 @@ if __name__ == "__main__":
 
     run_snr_scenario(obs_params)
     print(f"Run completed at: {datetime.now()}")
+
+
+if __name__ == "__main__":
+    main()

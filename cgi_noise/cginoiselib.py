@@ -136,19 +136,19 @@ def contrastStabilityPars(CS_Type, planetWA, CS_Data):
 
     ExtContStab = CS_Data.df.at[indCS, fnECS] * uc.ppb
     IntContStab = CS_Data.df.at[indCS, fnICS] * uc.ppb
-    rawContrast = CS_Data.df.at[indCS, fnARC] * uc.ppb
-    initStatRawContrast = CS_Data.df.at[indCS, fnISRC] * uc.ppb
+    AvgRawC  = CS_Data.df.at[indCS, fnARC] * uc.ppb
+    initStatRaw = CS_Data.df.at[indCS, fnISRC] * uc.ppb
 
     if nCols == 16 and 'SystematicC' in headers[13]:
-        SystematicCont = CS_Data.df.at[indCS, fnSC] * uc.ppb
-        selDeltaC = math.sqrt((ExtContStab**2) + (IntContStab**2) + (SystematicCont**2))
+        SystematicC = CS_Data.df.at[indCS, fnSC] * uc.ppb
+        selDeltaC = math.sqrt((ExtContStab**2) + (IntContStab**2) + (SystematicC**2))
     elif nCols == 13:
-        SystematicCont = 0
+        SystematicC = 0
         selDeltaC = math.sqrt((ExtContStab**2) + (IntContStab**2))
     else:
         raise IndexError('The contrast stability file referenced is not formatted as expected.')
 
-    return selDeltaC, rawContrast, SystematicCont, initStatRawContrast, rawContrast, IntContStab, ExtContStab
+    return selDeltaC, AvgRawC, SystematicC, initStatRaw, IntContStab, ExtContStab
 
 
 def getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, CGdesignWL, omegaPSF, data_dir):
@@ -441,22 +441,12 @@ def getSpectra(target, lam, bandWidth, data_dir):
 
     return inBandFlux0_sum, inBandZeroMagFlux, starFlux
 
-def getStrayLightfromfile(scenario,perfLevel,STRAY_FRN_Data):
-    # rowID = STRAY_FRN_Data.df.loc[STRAY_FRN_Data.df['PerfLevel']==perfLevel].index[0]
-    rowID = STRAY_FRN_Data.df.loc[STRAY_FRN_Data.df['PerfLevel']==perfLevel].index[0]
-    #scenario = scenarioData.at['Scenario','Latest']
+def getStrayLightfromfile(ObservationCase,perfLevel,STRAY_FRN_Data):
+
     try:
-        strayLight = STRAY_FRN_Data.df.at[rowID,scenario]
+        strayLight = STRAY_FRN_Data.df.at[0,ObservationCase]
     except:
-        #print(scenario)
-        scenario = scenario.replace('DRM','EB')
-        #print(scenario)
-        try:
-            strayLight = STRAY_FRN_Data.df.at[rowID,scenario]
-        except:
-            raise Exception('Stray needs help')
-            strayLight = None
-    #print(f'strayLight = {strayLight}')
+        raise Exception(f'Stray Light data for Observation Case {ObservationCase} Not found. ')
     return strayLight
 
 
