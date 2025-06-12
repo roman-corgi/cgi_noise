@@ -25,7 +25,7 @@ def run_snr_scenario(obs_params):
         print(f"YAML error: {e}")
         sys.exit(1)
 
-    run_pipeline(config, DATA_DIR, obs_params["target_params"], obs_params["snr"])
+    run_pipeline(config, DATA_DIR, obs_params["target_params"], obs_params["snr"], obs_params["verbose"])
 
 
 def main():
@@ -82,6 +82,7 @@ def main():
             "exoZodi": 1,
         },
         "snr": 5.0,
+        "verbose": False
     }
 
     run_snr_scenario(obs_params)
