@@ -55,7 +55,7 @@ def main():
         nargs="?",
         type=str,
         help="Scenario Name (string).",
-        default=scenarios[0],
+        default=scenarios[1],
         choices=scenarios,
     )
     parser.add_argument(

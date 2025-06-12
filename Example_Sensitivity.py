@@ -32,7 +32,7 @@ def run_sensitivity_scenario(obs_params):
     CG_Data, QE_Data, DET_CBE_Data, STRAY_FRN_Data, THPT_Data, CAL_Data, CS_Data = fl.loadCSVs(filenameList)
 
     SNR = 5.0
-    Thrs = 1000
+    Thrs = 1000000
     WAset, sep, Sensitivity = sens_pipeline(config, DATA_DIR, obs_params["target_params"], False, Thrs*uc.hour, SNR   )
         
     plt.figure(figsize=(8, 6))
@@ -64,7 +64,7 @@ def main():
         nargs="?",
         type=str,
         help="Scenario Name (string).",
-        default=scenarios[0],
+        default=scenarios[2],
         choices=scenarios,
     )
     parser.add_argument(
@@ -87,7 +87,7 @@ def main():
     print(f"Run started at: {datetime.now()}")
 
     obs_params = {
-        "scenario": "CON_IMG_WFB4_SPC.yml", #scenario,
+        "scenario": scenario,
         "target_params": {
             "v_mag": 5.0,
             "dist_pc": 10.0,
