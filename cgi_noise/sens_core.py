@@ -49,7 +49,7 @@ def sens_pipeline(config, DATA_DIR, target_params, verbose=True, totalTinteg=100
     sep = np.zeros(npts)
     for iWA in range(npts):
         WA = WAset[iWA]
-        selDeltaC, IntContStab, ExtContStab, SystematicC, AvgRawC, initStatRaw = fl.contrastStabilityPars(CS_Type, WA, CS_Data)
+        selDeltaC, AvgRawC, SystematicC, initStatRaw, IntContStab, ExtContStab = fl.contrastStabilityPars(CS_Type, WA, CS_Data)
 
         cg = fl.coronagraphParameters(CG_Data.df, config, WA, DPM)
         f_SR, _, detPixSize_m, mpix = fl.getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, cg.CGdesignWL, cg.omegaPSF, DATA_DIR)

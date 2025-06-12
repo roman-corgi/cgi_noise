@@ -148,8 +148,7 @@ def contrastStabilityPars(CS_Type, planetWA, CS_Data):
     else:
         raise IndexError('The contrast stability file referenced is not formatted as expected.')
 
-    return selDeltaC, IntContStab, ExtContStab, SystematicC, AvgRawC, initStatRaw
-
+    return selDeltaC, AvgRawC, SystematicC, initStatRaw, IntContStab, ExtContStab
 
 def getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, CGdesignWL, omegaPSF, data_dir):
 
