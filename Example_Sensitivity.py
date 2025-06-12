@@ -8,7 +8,7 @@ import argparse
 import cgi_noise.cginoiselib as fl
 
 
-def run_snr_scenario(obs_params):
+def run_sensitivity_scenario(obs_params):
     DATA_DIR = Path(os.environ["CGI_NOISE_DATA_DIR"])
     SCEN_DIR = DATA_DIR / "Scenarios"
 
@@ -93,7 +93,7 @@ def main():
         "verbose": True
     }
 
-    run_snr_scenario(obs_params)
+    run_sensitivity_scenario(obs_params)
     print(f"Run completed at: {datetime.now()}")
 
 
