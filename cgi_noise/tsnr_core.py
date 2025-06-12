@@ -15,7 +15,7 @@ class corePhotonRates:
     straylt: float
     total: float = 0.0
 
-def run_pipeline(config, DATA_DIR, target_params, verbose=True):
+def tsnr_pipeline(config, DATA_DIR, target_params, verbose=True):
     ObservationCase = config['DataSpecification']['ObservationCase']
 
     DPM = config['instrument']['Diam']
@@ -86,7 +86,7 @@ def run_pipeline(config, DATA_DIR, target_params, verbose=True):
     k_lzo = rdi_penalty['k_lzo']
     k_ezo = rdi_penalty['k_ezo']
 
-    nvRatesCore, residSpecRate = fl.noiseVarianceRates(
+    nvRatesCore, residSpecRate = fl.noiseRates(
         cphrate, QE_img, dQE, ENF, detNoiseRate,
         k_sp, k_det, k_lzo, k_ezo,
         f_SR, starFlux, selDeltaC,

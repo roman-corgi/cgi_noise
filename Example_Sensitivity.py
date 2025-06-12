@@ -1,4 +1,4 @@
-from cgi_noise.main_core import run_pipeline
+from cgi_noise.sens_core import sens_pipeline
 from pathlib import Path
 import sys
 import yaml
@@ -6,7 +6,9 @@ from datetime import datetime
 import os
 import argparse
 import cgi_noise.cginoiselib as fl
-
+import cgi_noise.unitsConstants as uc
+# import numpy as np
+import matplotlib.pyplot as plt
 
 def run_sensitivity_scenario(obs_params):
     DATA_DIR = Path(os.environ["CGI_NOISE_DATA_DIR"])
@@ -25,15 +27,22 @@ def run_sensitivity_scenario(obs_params):
     except yaml.YAMLError as e:
         print(f"YAML error: {e}")
         sys.exit(1)
-    
-    planetSignalRate, nvRatesCore, residSpecRate = run_pipeline(
-        config, DATA_DIR, obs_params["target_params"], obs_params["verbose"]
-    )
-    timeToSNR, criticalSNR = fl.compute_tsnr(
-        obs_params["snr"], planetSignalRate, nvRatesCore, residSpecRate
-    )
-    print(f"Integration time to SNR {obs_params['snr']:.1f}: {timeToSNR:.1f} sec, Critical SNR = {criticalSNR:.2f}")
-    
+        
+    filenameList = fl.getScenFileNames(config, DATA_DIR)
+    CG_Data, QE_Data, DET_CBE_Data, STRAY_FRN_Data, THPT_Data, CAL_Data, CS_Data = fl.loadCSVs(filenameList)
+
+    SNR = 5.0
+    Thrs = 10
+    WAset, sep, Sensitivity = sens_pipeline(config, DATA_DIR, obs_params["target_params"], False, Thrs*uc.hour, SNR   )
+        
+    plt.figure(figsize=(8, 6))
+    plt.plot(sep/uc.mas, Sensitivity/uc.ppb, 'b-', marker='o', label='Sensitivity')
+    plt.xlabel('Separation (mas)')
+    plt.ylabel(f'{SNR:.1f}-sigma Sensitivity, ppb')
+    plt.title(f'SNR={SNR:.1f} {Thrs:.1f} Hrs {scenario_filename}')
+    plt.grid(True)
+    plt.legend()
+ 
 
 
 def main():

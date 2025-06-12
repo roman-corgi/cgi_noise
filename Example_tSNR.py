@@ -1,4 +1,4 @@
-from cgi_noise.main_core import run_pipeline
+from cgi_noise.tsnr_core import tsnr_pipeline
 from pathlib import Path
 import sys
 import yaml
@@ -26,11 +26,11 @@ def run_snr_scenario(obs_params):
         print(f"YAML error: {e}")
         sys.exit(1)
     
-    planetSignalRate, nvRatesCore, residSpecRate = run_pipeline(
+    planetSignalRate, nvRatesCore, residSpecSdevRate = tsnr_pipeline(
         config, DATA_DIR, obs_params["target_params"], obs_params["verbose"]
     )
     timeToSNR, criticalSNR = fl.compute_tsnr(
-        obs_params["snr"], planetSignalRate, nvRatesCore, residSpecRate
+        obs_params["snr"], planetSignalRate, nvRatesCore, residSpecSdevRate
     )
     print(f"Integration time to SNR {obs_params['snr']:.1f}: {timeToSNR:.1f} sec, Critical SNR = {criticalSNR:.2f}")
     
