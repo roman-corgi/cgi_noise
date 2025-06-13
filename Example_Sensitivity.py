@@ -32,7 +32,7 @@ def run_sensitivity_scenario(obs_params):
     CG_Data, QE_Data, DET_CBE_Data, STRAY_FRN_Data, THPT_Data, CAL_Data, CS_Data = fl.loadCSVs(filenameList)
 
     SNR = 5
-    Thrs = 100000
+    Thrs = 10000
     WAset, sep, Sensitivity, KC, tauPk, intMpix, tauC, coreArea, dC = sens_pipeline(config, DATA_DIR, obs_params["target_params"], False, Thrs*uc.hour, SNR   )
         
 
@@ -88,7 +88,7 @@ def main():
         nargs="?",
         type=str,
         help="Scenario Name (string).",
-        default=scenarios[2],
+        default=scenarios[2],   # <<<===========================
         choices=scenarios,
     )
     parser.add_argument(
