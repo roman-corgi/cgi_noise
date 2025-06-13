@@ -43,10 +43,18 @@ def sens_pipeline(config, DATA_DIR, target_params, verbose=True, totalTinteg=100
     IWA, OWA = fl.workingAnglePars(CG_Data, CS_Data)
 
     Acol = (np.pi / 4) * DPM**2    
-    npts = 10
+    npts = 50
     WAset = np.linspace(IWA, OWA, npts)
     Sensitivity = np.zeros(npts)
+    # dC = np.zeros(npts)
     sep = np.zeros(npts)
+    # rsr = np.zeros(npts)
+    KC = np.zeros(npts)
+    tauPk = np.zeros(npts)
+    intMpix = np.zeros(npts)
+    tauC = np.zeros(npts)
+    dC= np.zeros(npts)
+    coreArea = np.zeros(npts)
     for iWA in range(npts):
         WA = WAset[iWA]
         selDeltaC, AvgRawC, SystematicC, initStatRaw, IntContStab, ExtContStab = fl.contrastStabilityPars(CS_Type, WA, CS_Data)
@@ -98,6 +106,12 @@ def sens_pipeline(config, DATA_DIR, target_params, verbose=True, totalTinteg=100
         # nvr = randomNoiseVarianceRates
         # print(f'{iWA} WA = {WA:.3f}:  Rnd tot: {randomNV:.2f}  spec:{(nvr.speckle*usableTinteg):.2f}  exo:{(nvr.exoZodi*usableTinteg):.2f}   resid Spec NV: {resSpecNV:.2f}')
         Kappa = 1.0 / (f_SR * starFlux * Acol * throughput_rates["planet"] * dQE * usableTinteg)
+        KC[iWA] = (cg.PSFpeakI * cg.CGintmpix) / thruputComponents.core
         Sensitivity[iWA] = (Kappa/2.0) * SNR**2 * ( 1 + np.sqrt( 1 + 4.0* nonPlanetNoiseVariance/SNR**2))
- 
-    return WAset, sep,  Sensitivity
+        
+        dC[iWA]=selDeltaC 
+        tauPk[iWA] = cg.PSFpeakI
+        intMpix[iWA] = cg.CGintmpix
+        tauC[iWA] = thruputComponents.core
+        coreArea[iWA] = cg.CG_PSFarea_sqlamD
+    return WAset, sep,  Sensitivity, KC, tauPk, intMpix, tauC, coreArea, dC

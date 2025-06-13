@@ -567,7 +567,7 @@ def compute_throughputs(THPT_Data, cg, ezdistrib="falloff"):
              * THPT_Data.df.at[0, 'CBE_CGI'],
         filt=1.0,
         polr=1.0,
-        core=THPT_Data.df.at[0, 'CBE_Core'],
+        core=cg.CGcoreThruput,  # THPT_Data.df.at[0, 'CBE_Core'],
         occt=cg.CG_occulter_transmission
     )
 
