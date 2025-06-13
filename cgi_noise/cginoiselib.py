@@ -150,7 +150,6 @@ def contrastStabilityPars(CS_Type, planetWA, CS_Data):
 
     return selDeltaC, AvgRawC, SystematicC, initStatRaw, IntContStab, ExtContStab
 
-
 def getFocalPlaneAttributes(opMode, config, DET_CBE_Data, lam, bandWidth, DPM, CGdesignWL, omegaPSF, data_dir):
 
     FocalPlaneAtt = loadCSVrow(data_dir / 'instrument' / 'CONST_SNR_FPattributes.csv')
@@ -568,7 +567,7 @@ def compute_throughputs(THPT_Data, cg, ezdistrib="falloff"):
              * THPT_Data.df.at[0, 'CBE_CGI'],
         filt=1.0,
         polr=1.0,
-        core=THPT_Data.df.at[0, 'CBE_Core'],
+        core=cg.CGcoreThruput,  # THPT_Data.df.at[0, 'CBE_Core'],
         occt=cg.CG_occulter_transmission
     )
 
@@ -707,10 +706,10 @@ class VarianceRates:
         fields_str = ", ".join([f"{k}={v:.3e}" for k, v in fields.items()])
         return f"VarianceRates({fields_str}, total={self.total:.3e})"
 
-def noiseVarianceRates(cphrate, QE, dQE, ENF, detNoiseRate, k_sp, k_det, k_lzo, k_ezo,
+def noiseRates(cphrate, QE, dQE, ENF, detNoiseRate, k_sp, k_det, k_lzo, k_ezo,
                            f_SR, starFlux, selDeltaC, k_pp, cg, speckleThroughput, Acol):
     """
-    Compute variance rates and residual speckle rate after post-processing.
+    Compute random noise variance rates and residual speckle std. dev. rate after post-processing.
 
     Parameters:
     - All as before, plus:
@@ -724,12 +723,11 @@ def noiseVarianceRates(cphrate, QE, dQE, ENF, detNoiseRate, k_sp, k_det, k_lzo, 
 
     Returns:
     - VarianceRates object
-    - residSpecRate: residual speckle rate (e-/s)
+    - residSpecSdevRate: residual speckle standard deviation rate (e-/s)
     """
 
-    residSpecRate = (
-        f_SR * starFlux * (selDeltaC / k_pp) *
-        cg.PSFpeakI * cg.CGintmpix * speckleThroughput * Acol * dQE
+    residSpecSdevRate = (
+        f_SR * starFlux * (selDeltaC / k_pp) * cg.PSFpeakI * cg.CGintmpix * speckleThroughput * Acol * dQE
     )
 
     # Note: the planet rate, following the EB model, differs from the others in using QE instead of dQE
@@ -745,10 +743,10 @@ def noiseVarianceRates(cphrate, QE, dQE, ENF, detNoiseRate, k_sp, k_det, k_lzo, 
         detRead = f_SR *          detNoiseRate.read     * k_det,
     )
 
-    return rates, residSpecRate
+    return rates, residSpecSdevRate
 
 
-def compute_tsnr(SNRdesired, planetSignalRate, nvRatesCore, residSpecRate):
+def compute_tsnr(SNRdesired, planetSignalRate, nvRatesCore, residSpecSdevRate):
     """
     Compute the required integration time and critical SNR.
 
@@ -762,11 +760,11 @@ def compute_tsnr(SNRdesired, planetSignalRate, nvRatesCore, residSpecRate):
     - criticalSNR: maximum achievable SNR given residual speckle
     """
 
-    denom = planetSignalRate**2 - SNRdesired**2 * residSpecRate**2
+    denom = planetSignalRate**2 - SNRdesired**2 * residSpecSdevRate**2
     if denom <= 0:
         raise ValueError("compute_tsnr: SNR condition is not achievable with given residual speckle level.")
 
     timeToSNR = SNRdesired**2 * nvRatesCore.total / denom
-    criticalSNR = planetSignalRate  / residSpecRate
+    criticalSNR = planetSignalRate  / residSpecSdevRate
 
     return timeToSNR, criticalSNR
