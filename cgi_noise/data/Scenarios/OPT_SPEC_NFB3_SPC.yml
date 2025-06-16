@@ -23,7 +23,7 @@ instrument:
   ExoZodi_magas2: 22
   RefStar_SpectralType: 'a0v'
   RefStar_V_mag_CBE: 2.26
-  pp_Factor_CBE: 2.0
+  pp_Factor_CBE: 1.2
   Diam: 2.363
   Acol: 4.385 # total collecting area, meters^2
 
