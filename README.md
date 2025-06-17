@@ -20,13 +20,13 @@ This Python package calculates the required integration time to achieve a target
 ## 📁 Folder Structure
 ```
 cgi_noise/
-├── Main.py                       # Entry point
+├── Example_tSNR.py               # Entry point
 ├── setup.py                      # Installation script
 ├── requirements.txt              # Python dependencies
 ├── README.md                     # This file
 └── cgi_noise/
     ├── __init__.py
-    ├── main_core.py              # Core simulation pipeline
+    ├── tsnr_core.py              # Core simulation pipeline
     ├── cginoiselib.py            # Physics and modeling logic
     ├── unitsConstants.py         # Physical units and constants
     ├── loadCSVrow.py             # CSV loader with comment support

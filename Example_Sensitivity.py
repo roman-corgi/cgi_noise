@@ -1,13 +1,16 @@
-from cgi_noise.main_core import run_pipeline
+from cgi_noise.sens_core import sens_pipeline
 from pathlib import Path
 import sys
 import yaml
 from datetime import datetime
 import os
 import argparse
+import cgi_noise.cginoiselib as fl
+import cgi_noise.unitsConstants as uc
+import numpy as np
+import matplotlib.pyplot as plt
 
-
-def run_snr_scenario(obs_params):
+def run_sensitivity_scenario(obs_params):
     DATA_DIR = Path(os.environ["CGI_NOISE_DATA_DIR"])
     SCEN_DIR = DATA_DIR / "Scenarios"
 
@@ -24,9 +27,47 @@ def run_snr_scenario(obs_params):
     except yaml.YAMLError as e:
         print(f"YAML error: {e}")
         sys.exit(1)
+        
+    filenameList = fl.getScenFileNames(config, DATA_DIR)
+    CG_Data, QE_Data, DET_CBE_Data, STRAY_FRN_Data, THPT_Data, CAL_Data, CS_Data = fl.loadCSVs(filenameList)
 
-    run_pipeline(config, DATA_DIR, obs_params["target_params"], obs_params["snr"])
+    SNR = 5
+    Thrs = 40
+    WAset, sep, Sensitivity, KC, tauPk, intMpix, tauC, coreArea, dC = sens_pipeline(config, DATA_DIR, obs_params["target_params"], False, Thrs*uc.hour, SNR   )
+        
 
+    plt.figure(figsize=(8, 6))
+    plt.plot(sep/uc.mas, Sensitivity/uc.ppb, 'b-', marker='o', label=f'Sensitivity  ppb')
+    plt.xlabel('Separation (mas)')
+    plt.ylabel(f'{SNR:.1f}-sigma Sensitivity, ppb')
+    plt.title(f'SNR={SNR:.1f} {Thrs:.1f} Hrs {scenario_filename}')
+    plt.grid(True)
+    plt.legend()
+ 
+    mdC = np.mean(dC)
+    mSen = np.mean(Sensitivity)
+    mKC  = np.mean(KC)
+    mtp = np.mean(tauPk)
+    mta = np.mean(tauPk*coreArea)
+    mitc = np.mean(1/tauC)
+    plt.figure(figsize=(8, 6))
+    plt.rcParams['mathtext.fontset'] = 'stix'  # Alternatives: 'cm', 'dejavusans'
+    plt.rcParams['text.usetex'] = False  # Ensure external LaTeX is disabled
+    plt.plot(WAset, Sensitivity/mSen, 'k-', marker='o', label=f'Sensitivity / {mSen/uc.ppb:.2f} ppb')
+    plt.plot(WAset, dC/mdC, 'y-', marker='d', label=f'delta C (CS) / {mdC/uc.ppb:.2f} ppb')
+    plt.plot(WAset, KC/mKC, 'r-.', label=f'KappaC / {mKC:.2f}')
+    plt.plot(WAset, tauPk/mtp, 'b:', label=f'tau_pk / {mtp:.2e}')
+    plt.plot(WAset, tauPk*coreArea/mta, 'c--', label=f'tau_pk * Omega_core / {mta:.2e}')
+    plt.plot(WAset, (1/tauC)/mitc , 'm--', label=f'(1/tauCore) / {mitc:.2e}')
+    
+    plt.xlabel('Working Angle, lam/D')
+    # plt.ylabel(f'{SNR:.1f}-sigma Sensitivity, ppb')
+    plt.title(f'SNR={SNR:.1f}    {Thrs:.1e} Hrs    {scenario_filename}')
+    plt.grid(True)
+    plt.legend()
+ 
+
+ 
 
 def main():
     scenarios = [
@@ -47,7 +88,7 @@ def main():
         nargs="?",
         type=str,
         help="Scenario Name (string).",
-        default=scenarios[0],
+        default=scenarios[1],   # <<<===========================
         choices=scenarios,
     )
     parser.add_argument(
@@ -82,9 +123,10 @@ def main():
             "exoZodi": 1,
         },
         "snr": 5.0,
+        "verbose": True
     }
 
-    run_snr_scenario(obs_params)
+    run_sensitivity_scenario(obs_params)
     print(f"Run completed at: {datetime.now()}")
 
 

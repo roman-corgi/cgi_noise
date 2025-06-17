@@ -1,0 +1,6 @@
+r_lam_D,REQ_ExtContStab,REQ_IntContStab,REQ_SystematicC,REQ_AvgRawContrast,REQ_InitStatContrast,ICBE_ExtContStab,ICBE_IntContStab,ICBE_SystematicC,ICBE_AvgRawContrast,ICBE_InitStatContrast,MCBE_ExtContStab,MCBE_IntContStab,MCBE_SystematicC,MCBE_AvgRawContrast,MCBE_InitStatContrast
+3,-1,-1,-1,-1,-1,0.3609,1.3614,1.1055,31.3111,31.1,-1,-1,-1,-1,-1
+4,-1,-1,-1,-1,-1,0.3096,1.0938,0.9,23.2841,23.1,-1,-1,-1,-1,-1
+5,-1,-1,-1,-1,-1,0.2704,0.9764,0.6572,23.614,23.5,-1,-1,-1,-1,-1
+8,-1,-1,-1,-1,-1,0.2821,1.1003,0.6704,25.6253,25.5,-1,-1,-1,-1,-1
+# BDK email 260617 as worst JK 2025-06-16,,,,,,,,,,,,,,,
