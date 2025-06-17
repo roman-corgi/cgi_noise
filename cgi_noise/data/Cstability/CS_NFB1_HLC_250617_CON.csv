@@ -1,0 +1,6 @@
+r_lam_D,REQ_ExtContStab,REQ_IntContStab,REQ_SystematicC,REQ_AvgRawContrast,REQ_InitStatContrast,ICBE_ExtContStab,ICBE_IntContStab,ICBE_SystematicC,ICBE_AvgRawContrast,ICBE_InitStatContrast,MCBE_ExtContStab,MCBE_IntContStab,MCBE_SystematicC,MCBE_AvgRawContrast,MCBE_InitStatContrast
+3,-1,-1,-1,-1,-1,1.13875148,2.26103157,2.383488713,83.62606199,79.3,-1,-1,-1,-1,-1
+4,-1,-1,-1,-1,-1,0.990448591,2.033643986,1.869849518,52.79315272,49.8,-1,-1,-1,-1,-1
+5,-1,-1,-1,-1,-1,0.611323173,1.24513419,0.968273355,34.29120683,33.2,-1,-1,-1,-1,-1
+8,-1,-1,-1,-1,-1,0.485824877,1.014010603,0.673718151,36.3069224,35.7,-1,-1,-1,-1,-1
+# BDK email 260617 -    NFOV TVAC JS 2025-06-12 + BDK 2025-06-16 - mission CBE (MUFs on IM predictions - MUFs on sensitivities - measured TVAC initial contrasts),,,,,,,,,,,,,,,
