@@ -1,0 +1,6 @@
+r_lam_D,REQ_ExtContStab,REQ_IntContStab,REQ_SystematicC,REQ_AvgRawContrast,REQ_InitStatContrast,ICBE_ExtContStab,ICBE_IntContStab,ICBE_SystematicC,ICBE_AvgRawContrast,ICBE_InitStatContrast,MCBE_ExtContStab,MCBE_IntContStab,MCBE_SystematicC,MCBE_AvgRawContrast,MCBE_InitStatContrast
+3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.0877308,0.313188888,0.268385209,3.211109964,3
+4,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.071320317,0.237109081,0.204528026,2.184147992,2
+5,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.071361408,0.253656466,0.179761353,2.113962282,2
+8,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.114495508,0.442940907,0.285427987,4.625319763,4.5
+# BDK email 260617 -  best JohnK 2025-06-16 - MCBE cols contain Unity CBE,,,,,,,,,,,,,,,

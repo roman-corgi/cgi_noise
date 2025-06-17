@@ -6,7 +6,7 @@ DataSpecification:
   Coronagraph_Data: 'CGPERF_HLC_NFB1_190210'
   QE_Curve_Data: 'DET_QE_e2v_Spec'
   Detector_Data: 'DET_CBE_250530'
-  ContrastStability_Data: 'CS_NFB1_HLC_250616'# 'CS_SPC_SPEC_200520_SCI' # 'CS_HLC_NFIM_250304_SCI' # 'CS_NFB1_HLC_240425' # 'CS_HLC_NFIM_250304_SCI' # 'CS_NFB1_HLC_240425' #  'CS_HLC_NFIM_250304_SCI' # 'CS_NFB1_HLC_240425' # CS_HLC_NFIM_250304_SCI # 
+  ContrastStability_Data: 'CS_NFB1_HLC_250616_OPT' 
   CS_Type: 'MCBE'
   Throughput_Data: 'THPT_HLC_NFB1_240725'
   Calibration_Data: 'CAL_EB_TTR_241227'

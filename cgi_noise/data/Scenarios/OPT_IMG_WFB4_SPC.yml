@@ -6,7 +6,7 @@ DataSpecification:
   Coronagraph_Data: 'CGPERF_SPC_WFB4_200610'
   QE_Curve_Data: 'DET_QE_e2v_Spec'
   Detector_Data: 'DET_CBE_250530'
-  ContrastStability_Data: 'CS_WFB4_SPC_201026' # CS_SPC_WFIM_200520_SCI.csv # 
+  ContrastStability_Data: 'CS_WFB4_SPC_250616_OPT' 
   CS_Type: 'MCBE'
   Throughput_Data: 'THPT_SPC_WFB4_200730'
   Calibration_Data: 'CAL_EB_TTR_241227'

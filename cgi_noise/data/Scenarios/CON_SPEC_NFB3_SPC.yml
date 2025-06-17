@@ -6,7 +6,7 @@ DataSpecification:
   Coronagraph_Data:  'CGPERF_SPC_NFB3_200617'
   QE_Curve_Data: 'DET_QE_e2v_Spec'
   Detector_Data: 'DET_CBE_250530'
-  ContrastStability_Data: 'CS_NFB3_SPC_201026' # 'CS_SPC_SPEC_201026' # 
+  ContrastStability_Data: 'CS_NFB3_SPC_250616_CON'
   CS_Type: 'ICBE'
   Throughput_Data: 'THPT_SPC_NFB3_200730'
   Calibration_Data: 'CAL_EB_TTR_241227'
@@ -23,7 +23,7 @@ instrument:
   ExoZodi_magas2: 22
   RefStar_SpectralType: 'a0v'
   RefStar_V_mag_CBE: 2.26
-  pp_Factor_CBE: 2.0
+  pp_Factor_CBE: 1.2
   Diam: 2.363
   Acol: 4.385 # total collecting area, meters^2
 
