@@ -1,0 +1,6 @@
+r_lam_D,REQ_ExtContStab,REQ_IntContStab,REQ_SystematicC,REQ_AvgRawContrast,REQ_InitStatContrast,ICBE_ExtContStab,ICBE_IntContStab,ICBE_SystematicC,ICBE_AvgRawContrast,ICBE_InitStatContrast,MCBE_ExtContStab,MCBE_IntContStab,MCBE_SystematicC,MCBE_AvgRawContrast,MCBE_InitStatContrast
+3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.165357438,0.751190396,0.77750472,5.343021118,4.5
+4,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.116418522,0.530339957,0.480860899,2.869386328,2.3
+5,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.082608137,0.340449562,0.267684263,1.817371538,1.6
+8,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.079764151,0.332196478,0.227217411,2.525364055,2.4
+# best JohnK 2025-06-16,,,,,,,,,,,,,,,
