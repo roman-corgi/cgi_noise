@@ -1,0 +1,6 @@
+r_lam_D,REQ_ExtContStab,REQ_IntContStab,REQ_SystematicC,REQ_AvgRawContrast,REQ_InitStatContrast,ICBE_ExtContStab,ICBE_IntContStab,ICBE_SystematicC,ICBE_AvgRawContrast,ICBE_InitStatContrast,MCBE_ExtContStab,MCBE_IntContStab,MCBE_SystematicC,MCBE_AvgRawContrast,MCBE_InitStatContrast
+3,-1,-1,-1,-1,-1,1.047,2.084,1.578,61.1,60.0,-1,-1,-1,-1,-1
+4,-1,-1,-1,-1,-1,0.898,1.698,1.283,47.0,46.0,-1,-1,-1,-1,-1
+5,-1,-1,-1,-1,-1,0.772,1.534,0.935,46.6,46.0,-1,-1,-1,-1,-1
+8,-1,-1,-1,-1,-1,0.809,1.727,0.952,50.6,50.0,-1,-1,-1,-1,-1
+"# BDK 250620 workbook -- spec ""worst case"" coherent from John K model aribtrary, incoherent duplicate of coherent",,,,,,,,,,,,,,,
