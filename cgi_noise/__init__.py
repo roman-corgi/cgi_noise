@@ -2,7 +2,7 @@ import os
 import importlib.resources
 
 name = "cgi_noise"
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 # identify data directory and add to environment variables for this session
 datapath = importlib.resources.files("cgi_noise").joinpath("data")
