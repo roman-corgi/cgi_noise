@@ -738,9 +738,9 @@ def noiseRates(cphrate, QE, dQE, ENF, detNoiseRate, k_sp, k_det, k_lzo, k_ezo,
         locZodi = f_SR * ENF**2 * cphrate.locZodi * dQE * k_lzo,
         exoZodi = f_SR * ENF**2 * cphrate.exoZodi * dQE * k_ezo,
         straylt = f_SR * ENF**2 * cphrate.straylt * dQE * k_det,
-        detDark = f_SR * ENF**2 * detNoiseRate.dark     * k_det,
-        detCIC  = f_SR * ENF**2 * detNoiseRate.CIC      * k_det,
-        detRead = f_SR *          detNoiseRate.read     * k_det,
+        detDark = ENF**2 * detNoiseRate.dark     * k_det,
+        detCIC  = ENF**2 * detNoiseRate.CIC      * k_det,
+        detRead =          detNoiseRate.read     * k_det,
     )
 
     return rates, residSpecSdevRate
