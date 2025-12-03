@@ -26,6 +26,7 @@ instrument:
   RefStar_SpectralType: 'a0v'
   RefStar_V_mag_CBE: 2.26
   pp_Factor_CBE: 2.0
+  contrast_degradation: 1.0
 
 TVACmeasured:
   Kappa_c_HLCB1: 1.38
