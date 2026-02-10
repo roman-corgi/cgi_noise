@@ -1,0 +1,7 @@
+r_lam_D,REQ_ExtContStab,REQ_IntContStab,REQ_SystematicC,REQ_AvgRawContrast,REQ_InitStatContrast,ICBE_ExtContStab,ICBE_IntContStab,ICBE_SystematicC,ICBE_AvgRawContrast,ICBE_InitStatContrast,MCBE_ExtContStab,MCBE_IntContStab,MCBE_SystematicC,MCBE_AvgRawContrast,MCBE_InitStatContrast
+6.5,-1,-1,-1,-1,-1,0.716269115,1.554379607,0.319216092,48.2726473,48,-1,-1,-1,-1,-1
+7.5,-1,-1,-1,-1,-1,0.496258742,1.151249068,0.175163263,28.05959746,27.8,-1,-1,-1,-1,-1
+8.5,-1,-1,-1,-1,-1,0.341811955,0.743450324,0.128425642,16.55391678,16.3,-1,-1,-1,-1,-1
+19,-1,-1,-1,-1,-1,0.472081753,0.884029423,0.316776773,31.7613496,31.5,-1,-1,-1,-1,-1
+# BDK worksheet 20260206stabilitysummary - WFOV TVAC (band 1) Joon 2025-06-17 (revised same day) ; sensitivities = band 4 * (825/575)^2,,,,,,,,,,,,,,,
+# see email thread FRN predictions for B1 WFOV and implementing in corgiETC started 1/30/2026,,,,,,,,,,,,,,,
