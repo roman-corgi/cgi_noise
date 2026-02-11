@@ -3,5 +3,5 @@ r_lam_D,REQ_ExtContStab,REQ_IntContStab,REQ_SystematicC,REQ_AvgRawContrast,REQ_I
 7.5,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.080553447,0.339082364,0.072077891,4.1836472,4.122
 8.5,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.078225653,0.317036127,0.073883736,5.036750521,4.982
 19,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0.101064723,0.346196647,0.153655762,8.826666579,8.776
-"# BDK Worksheet 20260206stabilitysummary - band 1 wide coherent contrast from band 4 wide * 1.5, incoherent equal to band 4 wide; sensitivities = band 4 * (825/575)^2",,,,,,,,,,,,,,,
+# BDK Worksheet 20260206stabilitysummary - band 1 wide coherent contrast from band 4 wide * 1.5, incoherent equal to band 4 wide; sensitivities = band 4 * (825/575)^2,,,,,,,,,,,,,,,
 # see email thread FRN predictions for B1 WFOV and implementing in corgiETC started 1/30/2026,,,,,,,,,,,,,,,
