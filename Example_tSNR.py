@@ -25,15 +25,16 @@ def run_snr_scenario(obs_params):
     except yaml.YAMLError as e:
         print(f"YAML error: {e}")
         sys.exit(1)
-    
+
     planetSignalRate, nvRatesCore, residSpecSdevRate = tsnr_pipeline(
         config, DATA_DIR, obs_params["target_params"], obs_params["verbose"]
     )
     timeToSNR, criticalSNR = fl.compute_tsnr(
         obs_params["snr"], planetSignalRate, nvRatesCore, residSpecSdevRate
     )
-    print(f"Integration time to SNR {obs_params['snr']:.1f}: {timeToSNR:.1f} sec, Critical SNR = {criticalSNR:.2f}")
-    
+    print(
+        f"Integration time to SNR {obs_params['snr']:.1f}: {timeToSNR:.1f} sec, Critical SNR = {criticalSNR:.2f}"
+    )
 
 
 def main():
@@ -44,6 +45,8 @@ def main():
         "CON_SPEC_NFB3_SPC.yml",
         "OPT_IMG_WFB4_SPC.yml",
         "CON_IMG_WFB4_SPC.yml",
+        "OPT_IMG_WFB1_SPC.yml",
+        "CON_IMG_WFB1_SPC.yml",
     ]
 
     parser = argparse.ArgumentParser(
@@ -90,7 +93,7 @@ def main():
             "exoZodi": 1,
         },
         "snr": 5.0,
-        "verbose": True
+        "verbose": True,
     }
 
     run_snr_scenario(obs_params)

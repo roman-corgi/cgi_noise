@@ -1,3 +1,4 @@
-StrayLightCase,CON_IMG_NFB1_HLC,CON_SPEC_NFB3_SPC,CON_IMG_WFB4_SPC,OPT_IMG_NFB1_HLC,OPT_SPEC_NFB3_SPC,OPT_IMG_WFB4_SPC
-ph_s_mm2,2.7,4.3,2.7,0.27,0.43,0.27
-# 230329 email titled Stray light luminescence CBE - OPT case removes Treadaway recommended 10x MUF but retains RDF=2,,,,,,
+StrayLightCase,CON_IMG_NFB1_HLC,CON_SPEC_NFB3_SPC,CON_IMG_WFB4_SPC,OPT_IMG_NFB1_HLC,OPT_SPEC_NFB3_SPC,OPT_IMG_WFB4_SPC,OPT_IMG_WFB1_SPC,CON_IMG_WFB1_SPC
+ph_s_mm2,2.7,4.3,2.7,0.27,0.43,0.27,0.27,2.7
+# 230329 email titled Stray light luminescence CBE - OPT case removes Treadaway recommended 10x MUF but retains RDF=2,,,,,,,,
+# 260206 - adding IMG_WFB1_SPC with same numbers as other imaging modes,,,,,,,,
