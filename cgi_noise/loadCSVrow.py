@@ -46,7 +46,7 @@ class loadCSVrow:
         rows = []
         is_comment_section = False
 
-        with open(self.fullfile, 'r', encoding=self._encoding) as f:
+        with open(self.fullfile, 'r',  encoding="utf-8-sig", errors="replace") as f:
             reader = csv.reader(f)
             for row in reader:
                 # If a comment line is encountered, switch to comment mode

@@ -107,3 +107,7 @@ venv.bak/
 .*.swp
 .DS_Store
 EBcsvData/Scenarios/~*.*
+
+# PyCharm
+.idea/
+/.junie
