@@ -465,14 +465,16 @@ class DetNoiseRates:
     CIC: float
     read: float
 
-def detector_noise_rates(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCounting):
+def detector_noise_rates(DET_CBE_Data, monthsSinceLaunch, frameTime, mpix, isPhotonCounting):
     """
     Calculates detector noise rates considering mission lifetime degradation.
 
     Args:
         DET_CBE_Data: Loaded CSV data for detector model. Expected DataFrame `df`
                       with columns like 'DetEOL_mos', 'DarkBOM_e_per_pix_per_hr', etc.
-        monthsAtL2: Mission duration at L2 in months, for degradation calculation.
+        monthsSinceLaunch: Elapsed mission time since launch in months (transit to L2
+                           plus time at L2), for degradation calculation. Must use the
+                           same time origin as DetEOL_mos (63 = 3 mo transit + 60 mo at L2).
         frameTime: Exposure time per frame in seconds.
         mpix: Number of pixels in the photometric aperture.
         isPhotonCounting: Boolean, True if operating in photon counting mode.
@@ -481,7 +483,7 @@ def detector_noise_rates(DET_CBE_Data, monthsAtL2, frameTime, mpix, isPhotonCoun
         A DetNoiseRates dataclass instance with calculated dark current, CIC,
         and read noise rates.
     """
-    missionFraction = monthsAtL2 / DET_CBE_Data.df.at[0, 'DetEOL_mos']
+    missionFraction = monthsSinceLaunch / DET_CBE_Data.df.at[0, 'DetEOL_mos']
     detDarkBOM = DET_CBE_Data.df.at[0, 'DarkBOM_e_per_pix_per_hr']
     detDarkEOM = DET_CBE_Data.df.at[0, 'DarkEOM_e_per_pix_per_hr']
     dark_per_hr = detDarkBOM + missionFraction * (detDarkEOM - detDarkBOM)
