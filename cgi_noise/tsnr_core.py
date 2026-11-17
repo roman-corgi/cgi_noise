@@ -78,7 +78,7 @@ def tsnr_pipeline(config, DATA_DIR, target_params, verbose=True):
 
     ENF, effReadnoise, frameTime, dQE, QE_img = fl.compute_frame_time_and_dqe(0.1, 3, 100, True, QE_Data, DET_CBE_Data, lam, mpix, cphrate.total)
 
-    detNoiseRate = fl.detector_noise_rates(DET_CBE_Data, 21, frameTime, mpix, True)
+    detNoiseRate = fl.detector_noise_rates(DET_CBE_Data, 21, frameTime, mpix, True)  # 21 mo since launch = 3 mo transit + 18 mo at L2
 
     rdi_penalty = fl.rdi_noise_penalty(inBandFlux0_sum, starFlux, TimeonRefStar_tRef_per_tTar, 'a0v', 2.26)
     k_sp = rdi_penalty['k_sp']
