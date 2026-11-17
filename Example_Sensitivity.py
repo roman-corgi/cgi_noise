@@ -77,6 +77,7 @@ def main():
         "CON_SPEC_NFB3_SPC.yml",
         "OPT_IMG_WFB4_SPC.yml",
         "CON_IMG_WFB4_SPC.yml",
+        "OPT_IMG_NFB1_HLC_DET261116.yml",
     ]
 
     parser = argparse.ArgumentParser(
